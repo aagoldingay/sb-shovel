@@ -93,7 +93,7 @@ func Test_writeFile_OneFile_Success(t *testing.T) {
 		}
 	}
 
-	ch := make(chan string)
+	ch := make(chan string, 1)
 	var wg sync.WaitGroup
 	s := []string{"test1", "test2", "test3"}
 
@@ -103,7 +103,8 @@ func Test_writeFile_OneFile_Success(t *testing.T) {
 	// wg.Wait()
 
 	if len(ch) > 0 {
-		t.Errorf("writeFile returned errors through a channel")
+		e := <-ch
+		t.Errorf("writeFile returned errors through a channel: %s", e)
 	}
 
 	c := readFile(fmt.Sprintf("%s/sb_output_000001.txt", dirName))
