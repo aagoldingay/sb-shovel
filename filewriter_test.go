@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"sync"
@@ -93,17 +94,24 @@ func Test_writeFile_OneFile_Success(t *testing.T) {
 		}
 	}
 
-	ch := make(chan string)
+	ch := make(chan string, 5)
 	var wg sync.WaitGroup
 	s := []string{"test1", "test2", "test3"}
 
 	// test
 	wg.Add(1)
 	writeFile(ch, 1, s, "00000", &wg)
-	wg.Wait()
 
 	if len(ch) > 0 {
-		t.Errorf("writeFile returned errors through a channel")
+		done := false
+		for !done {
+			if e, ok := <-ch; ok {
+				t.Errorf("Error from writeFile: %s", e)
+			} else {
+				done = true
+				continue
+			}
+		}
 	}
 
 	c := readFile(fmt.Sprintf("%s/sb_output_000001.txt", dirName))
@@ -123,6 +131,44 @@ func Test_writeFile_OneFile_Success(t *testing.T) {
 	}
 }
 
+func Test_filewrite(t *testing.T) {
+	// setup
+	if _, err := os.Stat(dirName); os.IsNotExist(err) {
+		err := createDir()
+		if err != nil {
+			t.Errorf("Test setup failed: %s", err.Error())
+		}
+	}
+
+	file, err := os.Create(fmt.Sprintf("%s/test.txt", dirName))
+	if err != nil {
+		t.Error(err)
+	}
+
+	writer := bufio.NewWriterSize(file, 10*10)
+	s := []string{"test1\n", "test2\n", "test3\n"}
+	for _, line := range s {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	err = writer.Flush()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file.Close()
+
+	// teardown
+	err = helper_deleteDir(t)
+	if err != nil {
+		t.Errorf("Test teardown failed: %s", err.Error())
+	}
+}
+
 func helper_deleteDir(t *testing.T) error {
 	t.Helper()
 	err := os.RemoveAll(dirName)
@@ -130,4 +176,10 @@ func helper_deleteDir(t *testing.T) error {
 		return err
 	}
 	return nil
+}
+
+func skipCI(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing for CI pipeline")
+	}
 }

@@ -16,7 +16,7 @@ const (
 func createDir() error {
 	_, err := os.Stat(dirName)
 	if os.IsNotExist(err) {
-		err := os.Mkdir(dirName, 0666)
+		err := os.Mkdir(dirName, 0777)
 		if err != nil {
 			return err
 		}
