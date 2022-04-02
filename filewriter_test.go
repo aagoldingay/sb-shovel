@@ -85,9 +85,7 @@ func Test_createDir_Exists(t *testing.T) {
 	}
 }
 
-func Test_Integration_writeFile_OneFile_Success(t *testing.T) {
-	skipCI(t)
-
+func Test_writeFile_OneFile_Success(t *testing.T) {
 	// setup
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
 		err := createDir()
