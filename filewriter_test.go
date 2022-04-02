@@ -100,7 +100,7 @@ func Test_writeFile_OneFile_Success(t *testing.T) {
 	// test
 	wg.Add(1)
 	writeFile(ch, 1, s, "00000", &wg)
-	wg.Wait()
+	// wg.Wait()
 
 	if len(ch) > 0 {
 		t.Errorf("writeFile returned errors through a channel")
