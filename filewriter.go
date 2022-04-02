@@ -61,7 +61,7 @@ func writeFile(errChannel chan string, i int, data []string, fileSuffix string, 
 	}
 	defer file.Close()
 
-	writer := bufio.NewWriterSize(file, 64*1024)
+	writer := bufio.NewWriterSize(file, 64*5120)
 	for _, line := range data {
 		_, err := writer.WriteString(line + "\n")
 		if err != nil {

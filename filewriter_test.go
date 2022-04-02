@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"sync"
@@ -85,7 +86,7 @@ func Test_createDir_Exists(t *testing.T) {
 }
 
 func Test_Integration_writeFile_OneFile_Success(t *testing.T) {
-	// skipCI(t)
+	skipCI(t)
 
 	// setup
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
@@ -127,6 +128,44 @@ func Test_Integration_writeFile_OneFile_Success(t *testing.T) {
 
 	// teardown
 	err := helper_deleteDir(t)
+	if err != nil {
+		t.Errorf("Test teardown failed: %s", err.Error())
+	}
+}
+
+func Test_filewrite(t *testing.T) {
+	// setup
+	if _, err := os.Stat(dirName); os.IsNotExist(err) {
+		err := createDir()
+		if err != nil {
+			t.Errorf("Test setup failed: %s", err.Error())
+		}
+	}
+
+	file, err := os.Create(fmt.Sprintf("%s/test.txt", dirName))
+	if err != nil {
+		t.Error(err)
+	}
+
+	writer := bufio.NewWriterSize(file, 10*10)
+	s := []string{"test1\n", "test2\n", "test3\n"}
+	for _, line := range s {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	err = writer.Flush()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file.Close()
+
+	// teardown
+	err = helper_deleteDir(t)
 	if err != nil {
 		t.Errorf("Test teardown failed: %s", err.Error())
 	}
