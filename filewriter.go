@@ -38,6 +38,7 @@ func readFile(dir string) [][]byte {
 		fmt.Println("ERROR: ", err)
 		return nil
 	}
+	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	buf := make([]byte, 64*5120)
 	scanner.Buffer(buf, 64*5120)
@@ -58,6 +59,7 @@ func writeFile(errChannel chan string, i int, data []string, fileSuffix string, 
 			return
 		}
 	}
+	defer file.Close()
 
 	writer := bufio.NewWriterSize(file, 64*5120)
 	for _, line := range data {

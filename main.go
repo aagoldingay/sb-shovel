@@ -62,7 +62,7 @@ func main() {
 	flag.Parse()
 
 	if _, cmdPres := commandList[command]; !cmdPres || help || (cmdPres && (len(connectionString) == 0 || len(queueName) == 0)) {
-		fmt.Println("sb-shovel v2.2.2\nManage large message operations on a given Service Bus.\n ")
+		fmt.Println("sb-shovel v0.1\nManage large message operations on a given Service Bus.\n ")
 		fmt.Println("Example Usage:\n\tsb-shovel.exe -cmd dump -conn \"<servicebus_uri>\" -q queueName\n\tsb-shovel.exe -cmd emptyAll -conn \"<servicebus_uri>\" -q queueName -dlq -rq")
 		flag.PrintDefaults()
 		return
