@@ -84,7 +84,9 @@ func Test_createDir_Exists(t *testing.T) {
 	}
 }
 
-func Test_writeFile_OneFile_Success(t *testing.T) {
+func Test_Integration_writeFile_OneFile_Success(t *testing.T) {
+	skipCI(t)
+
 	// setup
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
 		err := createDir()
@@ -104,8 +106,12 @@ func Test_writeFile_OneFile_Success(t *testing.T) {
 	if len(ch) > 0 {
 		done := false
 		for !done {
-			e := <-ch
-			t.Errorf("Error from writeFile: %s", e)
+			if e, ok := <-ch; ok {
+				t.Errorf("Error from writeFile: %s", e)
+			} else {
+				done = true
+				continue
+			}
 		}
 	}
 
@@ -133,4 +139,10 @@ func helper_deleteDir(t *testing.T) error {
 		return err
 	}
 	return nil
+}
+
+func skipCI(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing for CI pipeline")
+	}
 }
