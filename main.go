@@ -22,7 +22,7 @@ func outputCommands() string {
 	s += "dump\n\tperform local file dump from queue\n\t"
 	s += "requires: -conn, -q\n\toptional: -dlq, -out-lines, -template\n\t"
 	s += "output pattern: 'sb-shovel-output/sb_output_<file_number>'\n\t"
-	s += "alter file pattern: -template '{{.SystemProperties.SequenceNumber}} - {{.ID}} - {{.Data | printf \"%s\"}}'`"
+	s += "alter file pattern: -template '{{.SystemProperties.SequenceNumber}} - {{.ID}} - {{.Data | printf \"%s\"}}'"
 	s += "WARNING: local files with the same naming pattern will be overwritten"
 	s += "\n"
 
