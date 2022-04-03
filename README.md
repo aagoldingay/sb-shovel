@@ -4,6 +4,36 @@ sb-shovel is a CLI tool, written in Go, designed to speed up processing Azure Se
 
 This began as a locally developed tool to assist in performing operations on dead-letter queues, in Production environments, with large message volumes. It has proven to be invaluable for myself, so here's hoping somebody else will find this useful!
 
+## Project Structure
+
+```
+sb-shovel
+│   .gitignore
+│   CHANGELOG.md
+│   CODE_OF_CONDUCT.md
+│   CONTRIBUTING.md
+│   filewriter.go
+│   filewriter_test.go
+│   go.mod
+│   go.sum
+│   LICENSE
+│   main.go
+│   README.md
+│   servicebus.go
+│
+├───.github             # repository configurations
+│   ├───ISSUE_TEMPLATE
+│   └───workflows
+│
+├───test_files          # files to support project testing
+│
+└───test_terraform      # terraform configuration for project testing
+    │   providers.tf
+    │   README.md
+    │   servicebus.tf
+    │   variables.tf
+```
+
 ## Installation and Running
 
 Install and set up your Go (1.17+) environment (see main README)
@@ -46,6 +76,14 @@ Purge the contents of an entire dead-letter queue
 ```
 sb-shovel.exe -cmd emptyAll -conn "<servicebus_uri>" -q queueName -dlq
 ```
+
+## Testing
+
+There are some fairly fundamental unit tests in this project, which can be run with `go test`. 
+
+Unfortunately, the package used to interact with Azure Service Bus does not offer interfaces for Dependency Injection, and thus more work is required to refactor existing logic to support automated testing of the wider tool, without interacting with an Azure Service Bus resource.
+
+The `test_terraform` directory, and it's accompanying [README](test_terraform/README.md), offer a basic configuration for an Azure Service Bus resource to support user testing. 
 
 ## Contributing
 

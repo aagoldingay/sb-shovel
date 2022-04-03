@@ -14,5 +14,13 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Command outputs
+# VS Code
+.vscode
+
+# Terraform
+.terraform*
+*.tfvars
+*.tfstate*
+
+# sb-shovel outputs
 sb-shovel-output

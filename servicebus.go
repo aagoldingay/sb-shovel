@@ -81,6 +81,11 @@ func emptyQueue(all, requeue bool, ctx context.Context, source, target *serviceb
 		wg.Wait()
 		close(msgChan)
 	}
+
+	source.Close(ctx)
+	if requeue {
+		target.Close(ctx)
+	}
 }
 
 func setupServiceBus(connectionString string) (*servicebus.Namespace, error) {
