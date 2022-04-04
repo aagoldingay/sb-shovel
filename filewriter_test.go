@@ -177,9 +177,3 @@ func helper_deleteDir(t *testing.T) error {
 	}
 	return nil
 }
-
-func skipCI(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing for CI pipeline")
-	}
-}

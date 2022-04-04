@@ -25,7 +25,7 @@ q_name      = "testqueue"
 Log in to `az CLI`, a tool by Microsoft allowing you to interact with Azure Resource Manager (create / update / change Azure resources)
 
 ```
-az login --tenant <tenantid>
+az login -t <tenantid>
 
 # if you have multiple Azure subscriptions, run the following to change your default
 az account set --subscription <subscriptionid>
