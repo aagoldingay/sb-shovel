@@ -202,6 +202,7 @@ func Test_ServiceBusController_ReadSourceQueue_Empty(t *testing.T) {
 	}
 
 	close(returnedMsgs)
+	close(eChan)
 
 	err = sb.DisconnectSource()
 	if err != nil {
@@ -242,7 +243,6 @@ func Test_ServiceBusController_ReadSourceQueue_MultipleMessages_OneBatch(t *test
 	for !done {
 		select {
 		case msgs := <-returnedMsgs:
-			done = true
 			if len(msgs) != 5 {
 				t.Errorf("Unexpected number of messages returned: %d", len(msgs))
 			}
@@ -261,6 +261,7 @@ func Test_ServiceBusController_ReadSourceQueue_MultipleMessages_OneBatch(t *test
 		}
 	}
 	close(returnedMsgs)
+	close(eChan)
 
 	if batches != 1 {
 		t.Errorf("Did not run 1 times, ran: %d times", batches)
@@ -331,6 +332,7 @@ func Test_ServiceBusController_ReadSourceQueue_MultipleMessages_MultipleBatches(
 		}
 	}
 	close(returnedMsgs)
+	close(eChan)
 
 	if batches != 2 {
 		t.Errorf("Did not run 2 times, ran: %d times", batches)
@@ -458,6 +460,8 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 			done = true
 		}
 	}
+
+	close(eChan)
 
 	c, err = sb.GetSourceQueueCount()
 	if c != 0 {
