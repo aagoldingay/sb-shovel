@@ -100,19 +100,30 @@ func Test_WriteFile_OneFile_Success(t *testing.T) {
 	// test
 	wg.Add(1)
 	go WriteFile(eChan, 1, s, &wg)
-	done := false
+	wg.Wait()
 
-	for !done {
-		e := <-eChan
-		if e != nil {
-			if e.Error() == "complete" {
-				done = true
-				continue
+	// for !done {
+	// 	e := <-eChan
+	// 	if e != nil {
+	// 		if e.Error() == "complete" {
+	// 			done = true
+	// 			continue
+	// 		}
+	// 		t.Errorf("Error while writing file: %s", e)
+	// 	}
+	// }
+	if len(eChan) > 0 {
+		done := false
+		for !done {
+			if e, ok := <-eChan; ok {
+				if e.Error() == "complete" {
+					done = true
+					continue
+				}
+				t.Errorf("Error while writing file: %s", e)
 			}
-			t.Errorf("Error while writing file: %s", e)
 		}
 	}
-	wg.Wait()
 	close(eChan)
 
 	c := ReadFile(fmt.Sprintf("%s/sb_output_000001.txt", dirName))

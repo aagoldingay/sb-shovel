@@ -71,6 +71,9 @@ func emptyQueue(all, requeue bool, ctx context.Context, source, target *serviceb
 			}
 			if count == total {
 				defer cancel()
+				// maybe try seeing if its the cancel, here, thats breaking it
+				// msgChan <- m
+				// return nil
 			}
 			msgChan <- m
 			return nil
@@ -78,6 +81,7 @@ func emptyQueue(all, requeue bool, ctx context.Context, source, target *serviceb
 			fmt.Println(err)
 			return
 		}
+		// cancel()
 		wg.Wait()
 		close(msgChan)
 	}
