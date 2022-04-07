@@ -133,6 +133,9 @@ func empty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 		} else {
 			fmt.Println("1 message deleted")
 		}
+		if requeue {
+			sb.DisconnectTarget()
+		}
 		return nil
 	}
 
