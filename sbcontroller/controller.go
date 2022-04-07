@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	ERR_NOQUEUEOBJECT string = "no queue to close"
-	ERR_DELETESTATUS  string = "[status] completed %d of %d messages"
-	ERR_QUEUEEMPTY    string = "no messages to pull"
-	ERR_UNAUTHORISED  string = "unauthorised or inaccessible service bus. please confirm details - 401"
-	ERR_NOTFOUND      string = "could not find service bus queue - 404"
+	ERR_DELETESTATUS     string = "[status] completed %d of %d messages"
+	ERR_NOMESSAGESTOSEND string = "no messages to send"
+	ERR_NOQUEUEOBJECT    string = "no queue to close"
+	ERR_NOTFOUND         string = "could not find service bus queue - 404"
+	ERR_QUEUEEMPTY       string = "no messages to pull"
+	ERR_UNAUTHORISED     string = "unauthorised or inaccessible service bus. please confirm details - 401"
 )
 
 type Controller interface {
@@ -202,6 +203,9 @@ func (sb *ServiceBusController) SendJsonMessage(q bool, data []byte) error {
 }
 
 func (sb *ServiceBusController) SendManyJsonMessages(q bool, data [][]byte) error {
+	if len(data) == 0 {
+		return errors.New(ERR_NOMESSAGESTOSEND)
+	}
 	for i := 0; i < len(data); i++ {
 		err := sb.SendJsonMessage(q, data[i])
 		if err != nil {

@@ -9,38 +9,7 @@ import (
 	sbc "sb-shovel/sbcontroller"
 )
 
-func doMain(connectionString string) {
-	sb, err := sbc.NewController(connectionString)
-	if err != nil {
-		return
-	}
-	var cmds = map[string]string{"dump": "dump", "emptyOne": "emptyOne", "emptyAll": "emptyAll", "sendFromFile": "sendFromFile"}
-	command := "dump"
-	requeue := false
-	dir := ""
-	dlq := true
-	maxWrite := 5
-	switch command {
-	case cmds["dump"]:
-		doDump(sb, "queuename", dlq, maxWrite)
-		return
-	case cmds["emptyOne"]:
-		doEmpty(sb, "queuename", dlq, false, requeue)
-		return
-	case cmds["emptyAll"]:
-		doEmpty(sb, "queuename", dlq, true, requeue)
-		return
-	case cmds["sendFromFile"]:
-		if len(dir) == 0 {
-			fmt.Println("Value for -dir flag missing")
-			return
-		}
-		doSendFromFile(sb, "queuename", dir)
-		return
-	}
-}
-
-func doDump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
+func dump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 	err := sb.SetupSourceQueue(q, dlq, false)
 	if err != nil {
 		return err
@@ -57,13 +26,11 @@ func doDump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 
 	fmt.Printf("%d messages to process on %s queue...\n", total, q)
 
-	// create dir
 	err = sbio.CreateDir()
 	if err != nil {
 		return err
 	}
 
-	// start work
 	returnedMsgs := make(chan []string)
 	eChan := make(chan error)
 
@@ -74,6 +41,7 @@ func doDump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 
 	done := false
 	fileCount := 1
+
 	for !done {
 		select {
 		case msgs, ok := <-returnedMsgs:
@@ -94,21 +62,25 @@ func doDump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 			return e
 		}
 	}
+
 	wg.Wait()
 	close(eChan)
+
 	fmt.Printf("Finished in %dms\n", time.Since(start).Milliseconds())
+
 	return nil
 }
 
-func doEmpty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
+func empty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 	err := sb.SetupSourceQueue(q, dlq, true)
+
 	if err != nil {
 		return err
 	}
 	defer sb.DisconnectSource()
 
 	if requeue {
-		if !dlq == true {
+		if !dlq {
 			return fmt.Errorf("cannot requeue messages directly to a dead letter queue")
 		}
 		err = sb.SetupTargetQueue(q, !dlq, true)
@@ -118,11 +90,21 @@ func doEmpty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 	}
 
 	c, err := sb.GetSourceQueueCount()
+
 	if err != nil {
 		return err
 	}
 	if c == 0 {
 		return fmt.Errorf("no messages to delete")
+	}
+
+	if all {
+		msgCount := "%d messages to %s\n"
+		if requeue {
+			fmt.Printf(msgCount, c, "requeue")
+		} else {
+			fmt.Printf(msgCount, c, "delete")
+		}
 	}
 
 	if all {
@@ -146,17 +128,34 @@ func doEmpty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 		if err != nil {
 			return err
 		}
+		if requeue {
+			fmt.Println("1 message requeued")
+		} else {
+			fmt.Println("1 message deleted")
+		}
+		return nil
 	}
 
 	curr, err := sb.GetSourceQueueCount()
+
 	if err != nil {
 		return err
 	}
-	completeMessage := "%d deleted"
+
+	// completeMessage := "%d %s"
+	completeMessage := "%d message(s) %s"
+
+	if requeue {
+		completeMessage = fmt.Sprintf(completeMessage, c, "requeued")
+	} else {
+		completeMessage = fmt.Sprintf(completeMessage, c, "deleted")
+	}
+
 	if curr > 0 {
 		completeMessage += fmt.Sprintf(", %d remaining - these may have been added since the process began", curr)
 	}
-	fmt.Printf(fmt.Sprintf("%s\n", completeMessage), c)
+
+	fmt.Printf("%s\n", completeMessage)
 
 	if requeue {
 		sb.DisconnectTarget()
@@ -165,19 +164,19 @@ func doEmpty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 	return nil
 }
 
-func doSendFromFile(sb sbc.Controller, q, dir string) error {
+func sendFromFile(sb sbc.Controller, q, dir string) error {
 	err := sb.SetupSourceQueue(q, false, true)
 	if err != nil {
 		return err
 	}
 	defer sb.DisconnectSource()
 
-	// read from file
 	data := sbio.ReadFile(dir)
 
 	err = sb.SendManyJsonMessages(false, data)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Sent %d messages\n", len(data))
 	return nil
 }
