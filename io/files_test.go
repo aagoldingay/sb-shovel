@@ -102,16 +102,6 @@ func Test_WriteFile_OneFile_Success(t *testing.T) {
 	go WriteFile(eChan, 1, s, &wg)
 	wg.Wait()
 
-	// for !done {
-	// 	e := <-eChan
-	// 	if e != nil {
-	// 		if e.Error() == "complete" {
-	// 			done = true
-	// 			continue
-	// 		}
-	// 		t.Errorf("Error while writing file: %s", e)
-	// 	}
-	// }
 	if len(eChan) > 0 {
 		done := false
 		for !done {
