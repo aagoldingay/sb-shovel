@@ -11,23 +11,41 @@ sb-shovel
 │   .gitignore
 │   CHANGELOG.md
 │   CODE_OF_CONDUCT.md
+│   commands.go
+│   commands_test.go
 │   CONTRIBUTING.md
-│   filewriter.go
-│   filewriter_test.go
 │   go.mod
 │   go.sum
 │   LICENSE
 │   main.go
 │   README.md
-│   servicebus.go
 │
-├───.github             # repository configurations
+├───.github                             # repository configurations
 │   ├───ISSUE_TEMPLATE
+│   │       bug_report.md
+│   │       feature_request.md
+│   │
 │   └───workflows
+│           go_ci.yml
 │
-├───test_files          # files to support project testing
+├───io
+│       files.go
+│       files_test.go
 │
-└───test_terraform      # terraform configuration for project testing
+├───mocks
+│       mockcontroller.go
+│       mockcontroller_test.go
+│
+├───sbcontroller
+│       controller.go
+│       controller_integration_test.go
+│
+├───test_files                          # files to support project testing
+│       cmd_send_test.txt
+│       filewriter_test.json
+│       integration_template.json
+│
+└───test_terraform                      # terraform configuration for project testing
     │   providers.tf
     │   README.md
     │   servicebus.tf
@@ -46,7 +64,7 @@ git clone <repo>
 cd sb-shovel
 go mod init
 go mod download
-go run main.go filewriter.go servicebus.go
+go run main.go commands.go
 ```
 
 ## Building

@@ -1,3 +1,18 @@
+# 0.2
+
+NEW (internal) [#8](https://github.com/aagoldingay/sb-shovel/issues/8)
+
+- Modularised project structure into packages
+- Refactored Service Bus dependency to allow for dependency injection
+
+FIXED
+
+- [#4](https://github.com/aagoldingay/sb-shovel/issues/4) `emptyAll` now removes all queue contents
+
+REMOVED
+
+- Templating functionality for `dump` command (to be solved in [#9](https://github.com/aagoldingay/sb-shovel/issues/9))
+
 # 0.1
 
 Initial version, migrated from local development to open source.
