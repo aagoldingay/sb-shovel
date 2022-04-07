@@ -22,5 +22,6 @@
 *.tfvars
 *.tfstate*
 
-# sb-shovel outputs
+# sb-shovel
 sb-shovel-output
+integration.json

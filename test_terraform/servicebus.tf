@@ -18,6 +18,7 @@ resource "azurerm_servicebus_queue" "q" {
   name         = var.q_name
   namespace_id = azurerm_servicebus_namespace.sb.id
 
-  enable_batched_operations = true
-  default_message_ttl       = "PT30M" # 30 minutes
+  enable_batched_operations            = true
+  default_message_ttl                  = "PT2M" # 2 minutes
+  dead_lettering_on_message_expiration = true
 }

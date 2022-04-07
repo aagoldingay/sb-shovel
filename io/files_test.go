@@ -1,15 +1,14 @@
-package main
+package io
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"sync"
 	"testing"
 )
 
-func Test_readFile_Success(t *testing.T) {
-	c := readFile("test_files/filewriter_test.json")
+func Test_ReadFile_Success(t *testing.T) {
+	c := ReadFile("../test_files/filewriter_test.json")
 
 	if c == nil {
 		t.Error("File read failed")
@@ -22,15 +21,15 @@ func Test_readFile_Success(t *testing.T) {
 	}
 }
 
-func Test_readFile_BadPath(t *testing.T) {
-	c := readFile("test_files/no_file.json")
+func Test_ReadFile_Fail_BadPath(t *testing.T) {
+	c := ReadFile("../test_files/no_file.json")
 
 	if c != nil {
 		t.Error("Test returned unexpected content")
 	}
 }
 
-func Test_createDir_Create(t *testing.T) {
+func Test_CreateDir_Create(t *testing.T) {
 	// setup
 	if _, err := os.Stat(dirName); !os.IsNotExist(err) {
 		err := helper_deleteDir(t)
@@ -41,7 +40,7 @@ func Test_createDir_Create(t *testing.T) {
 	}
 
 	// test
-	err := createDir()
+	err := CreateDir()
 
 	if err != nil {
 		t.Error("Directory creation failed")
@@ -58,17 +57,17 @@ func Test_createDir_Create(t *testing.T) {
 	}
 }
 
-func Test_createDir_Exists(t *testing.T) {
+func Test_CreateDir_Exists(t *testing.T) {
 	// setup
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
-		err := createDir()
+		err := CreateDir()
 		if err != nil {
 			t.Errorf("Test setup failed: %s", err.Error())
 		}
 	}
 
 	// test
-	err := createDir()
+	err := CreateDir()
 
 	if err != nil {
 		t.Error("Directory creation failed")
@@ -85,36 +84,39 @@ func Test_createDir_Exists(t *testing.T) {
 	}
 }
 
-func Test_writeFile_OneFile_Success(t *testing.T) {
+func Test_WriteFile_OneFile_Success(t *testing.T) {
 	// setup
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
-		err := createDir()
+		err := CreateDir()
 		if err != nil {
 			t.Errorf("Test setup failed: %s", err.Error())
 		}
 	}
 
-	ch := make(chan string, 5)
+	eChan := make(chan error, 2)
 	var wg sync.WaitGroup
 	s := []string{"test1", "test2", "test3"}
 
 	// test
 	wg.Add(1)
-	writeFile(ch, 1, s, "00000", &wg)
+	go WriteFile(eChan, 1, s, &wg)
+	wg.Wait()
 
-	if len(ch) > 0 {
+	if len(eChan) > 0 {
 		done := false
 		for !done {
-			if e, ok := <-ch; ok {
-				t.Errorf("Error from writeFile: %s", e)
-			} else {
-				done = true
-				continue
+			if e, ok := <-eChan; ok {
+				if e.Error() == "complete" {
+					done = true
+					continue
+				}
+				t.Errorf("Error while writing file: %s", e)
 			}
 		}
 	}
+	close(eChan)
 
-	c := readFile(fmt.Sprintf("%s/sb_output_000001.txt", dirName))
+	c := ReadFile(fmt.Sprintf("%s/sb_output_000001.txt", dirName))
 
 	if c == nil {
 		t.Error("File read failed")
@@ -131,44 +133,6 @@ func Test_writeFile_OneFile_Success(t *testing.T) {
 	}
 }
 
-func Test_filewrite(t *testing.T) {
-	// setup
-	if _, err := os.Stat(dirName); os.IsNotExist(err) {
-		err := createDir()
-		if err != nil {
-			t.Errorf("Test setup failed: %s", err.Error())
-		}
-	}
-
-	file, err := os.Create(fmt.Sprintf("%s/test.txt", dirName))
-	if err != nil {
-		t.Error(err)
-	}
-
-	writer := bufio.NewWriterSize(file, 10*10)
-	s := []string{"test1\n", "test2\n", "test3\n"}
-	for _, line := range s {
-		_, err := writer.WriteString(line + "\n")
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	}
-	err = writer.Flush()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	file.Close()
-
-	// teardown
-	err = helper_deleteDir(t)
-	if err != nil {
-		t.Errorf("Test teardown failed: %s", err.Error())
-	}
-}
-
 func helper_deleteDir(t *testing.T) error {
 	t.Helper()
 	err := os.RemoveAll(dirName)
@@ -176,10 +140,4 @@ func helper_deleteDir(t *testing.T) error {
 		return err
 	}
 	return nil
-}
-
-func skipCI(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing for CI pipeline")
-	}
 }
