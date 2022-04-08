@@ -1,3 +1,9 @@
+# 0.2.1
+
+CHANGED
+
+- Referencing own GitHub repo hostname when importing
+
 # 0.2
 
 NEW (internal) [#8](https://github.com/aagoldingay/sb-shovel/issues/8)
