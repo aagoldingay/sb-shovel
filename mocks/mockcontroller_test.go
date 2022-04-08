@@ -1,8 +1,9 @@
 package mocks
 
 import (
-	"sb-shovel/sbcontroller"
 	"testing"
+
+	"github.com/aagoldingay/sb-shovel/sbcontroller"
 )
 
 func CalculateQueueSize(c sbcontroller.Controller) int {

@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	sbio "sb-shovel/io"
-	sbmock "sb-shovel/mocks"
+	sbio "github.com/aagoldingay/sb-shovel/io"
+	sbmock "github.com/aagoldingay/sb-shovel/mocks"
 )
 
 func Test_Dump_Fail_EmptyQueue(t *testing.T) {

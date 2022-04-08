@@ -3,7 +3,8 @@ package mocks
 import (
 	"errors"
 	"fmt"
-	sbc "sb-shovel/sbcontroller"
+
+	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
 
 type MockServiceBusController struct {

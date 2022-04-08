@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	sbc "sb-shovel/sbcontroller"
+	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
 
 var dir, command, connectionString, queueName /*, tmpl*/ string

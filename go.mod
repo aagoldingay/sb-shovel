@@ -1,4 +1,4 @@
-module sb-shovel
+module github.com/aagoldingay/sb-shovel
 
 go 1.17
 

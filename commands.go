@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	sbio "sb-shovel/io"
-	sbc "sb-shovel/sbcontroller"
+	sbio "github.com/aagoldingay/sb-shovel/io"
+	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
 
 func dump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
