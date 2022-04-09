@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -114,11 +115,12 @@ func empty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 		done := false
 		for !done {
 			e := <-eChan
-			if e.Error() == sbc.ERR_DELETESTATUS {
+			if strings.Contains(e.Error(), "[status]") {
 				fmt.Println(e.Error())
+				continue
 			}
 			if e.Error() != "context canceled" {
-				return err
+				return e
 			}
 			done = true
 		}

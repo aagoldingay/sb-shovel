@@ -12,6 +12,8 @@ var isDlq, requeue, help bool
 var maxWriteCache int
 var commandList = map[string]string{"dump": "dump", "emptyOne": "emptyOne", "emptyAll": "emptyAll", "sendFromFile": "sendFromFile"}
 
+var version = "v0.2.2"
+
 func outputCommands() string {
 	s := ""
 	// dump
@@ -58,7 +60,7 @@ func main() {
 	flag.Parse()
 
 	if _, cmdPres := commandList[command]; !cmdPres || help || (cmdPres && (len(connectionString) == 0 || len(queueName) == 0)) {
-		fmt.Println("sb-shovel v0.2\nManage large message operations on a given Service Bus.\n ")
+		fmt.Printf("sb-shovel %s\nManage large message operations on a given Service Bus.\n\n", version)
 		fmt.Println("Example Usage:\n\tsb-shovel.exe -cmd dump -conn \"<servicebus_uri>\" -q queueName\n\tsb-shovel.exe -cmd emptyAll -conn \"<servicebus_uri>\" -q queueName -dlq -rq")
 		flag.PrintDefaults()
 		return

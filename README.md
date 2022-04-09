@@ -58,6 +58,11 @@ Install and set up your Go (1.17+) environment (see main README)
 
 Once done, you can now clone to GOROOT or [GOPATH](https://www.digitalocean.com/community/tutorials/understanding-the-gopath), and set up the environment
 
+Easy: 
+```
+go install github.com/aagoldingay/sb-shovel
+```
+
 ```
 cd $GOPATH/src
 git clone <repo>

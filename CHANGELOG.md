@@ -1,3 +1,17 @@
+# 0.2.2
+
+NEW
+
+- Documented `go install` option, now that packages are imported appropriately
+
+FIXED
+
+- `emptyAll` now correctly prints status messages per 50 deleted files, and does not exit the process
+
+CHANGED
+
+- Moved version to a variable to make it slightly easier to remember
+
 # 0.2.1
 
 CHANGED
