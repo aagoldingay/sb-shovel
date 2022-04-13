@@ -4,6 +4,7 @@ CHANGED
 
 - Improved `emptyAll`'s speed and capability to delete large quantities of messages
     - WARNING: This is an unbound process without adding the `-delay` flag
+    - `delay` flag introduces a 250ms sleep period per 50 messages processed (deleted or requeued)
 
 # 0.2.2
 
