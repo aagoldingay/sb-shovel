@@ -1,3 +1,10 @@
+# 0.3
+
+CHANGED
+
+- Improved `emptyAll`'s speed and capability to delete large quantities of messages
+    - WARNING: This is an unbound process without adding the `-delay` flag
+
 # 0.2.2
 
 NEW

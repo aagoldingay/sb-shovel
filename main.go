@@ -8,11 +8,11 @@ import (
 )
 
 var dir, command, connectionString, queueName /*, tmpl*/ string
-var isDlq, requeue, help bool
+var isDlq, requeue, delay, help bool
 var maxWriteCache int
 var commandList = map[string]string{"dump": "dump", "emptyOne": "emptyOne", "emptyAll": "emptyAll", "sendFromFile": "sendFromFile"}
 
-var version = "v0.2.2"
+var version = "v0.3"
 
 func outputCommands() string {
 	s := ""
@@ -33,9 +33,9 @@ func outputCommands() string {
 
 	//emptyAll
 	s += "emptyAll\n\treceive and remove all messages from queue\n\t"
-	s += "requires: -conn, -q\n\toptional: -dlq, -rq\n\t"
+	s += "requires: -conn, -q\n\toptional: -dlq, -rq, -delay\n\t"
 	s += "WARNING: failure to provide '-rq' will result in lost messages\n\t"
-	s += "WARNING: providing -rq while actioning the main queue will point message resubmission to the dead letter queue"
+	s += "WARNING: execution without '-delay' may cause issues if you are dealing with extremely large queues"
 	s += "\n"
 
 	//sendFromFile
@@ -55,6 +55,7 @@ func main() {
 	flag.StringVar(&dir, "dir", "", "directory of file containing json messages to send")
 	flag.BoolVar(&isDlq, "dlq", false, "point to the defined queue's deadletter subqueue")
 	flag.BoolVar(&requeue, "rq", false, "resubmit (requeue) messages")
+	flag.BoolVar(&delay, "delay", false, "include a 250ms delay for every 50 messages sent")
 	flag.BoolVar(&help, "help", false, "information about this tool")
 	flag.IntVar(&maxWriteCache, "out-lines", 100, "number of lines per file")
 	flag.Parse()
@@ -77,19 +78,27 @@ func main() {
 			fmt.Println("Value for -out-lines is not valid. Must be >= 1")
 			return
 		}
+		if delay {
+			fmt.Println("Delay is not supported for this command")
+			return
+		}
 		err := dump(sb, queueName, isDlq, maxWriteCache)
 		if err != nil {
 			fmt.Println(err)
 		}
 		return
 	case commandList["emptyOne"]:
-		err := empty(sb, queueName, isDlq, false, requeue)
+		if delay {
+			fmt.Println("Delay is not supported for this command")
+			return
+		}
+		err := empty(sb, queueName, isDlq, false, requeue, false)
 		if err != nil {
 			fmt.Println(err)
 		}
 		return
 	case commandList["emptyAll"]:
-		err := empty(sb, queueName, isDlq, true, requeue)
+		err := empty(sb, queueName, isDlq, true, requeue, delay)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -101,6 +110,10 @@ func main() {
 		}
 		if isDlq {
 			fmt.Println("Cannot send to a dead letter queue")
+			return
+		}
+		if delay {
+			fmt.Println("Delay is not supported for this command")
 			return
 		}
 		err := sendFromFile(sb, queueName, dir)

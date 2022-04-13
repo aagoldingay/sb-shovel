@@ -72,7 +72,7 @@ func dump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 	return nil
 }
 
-func empty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
+func empty(sb sbc.Controller, q string, dlq, all, requeue, delay bool) error {
 	err := sb.SetupSourceQueue(q, dlq, true)
 
 	if err != nil {
@@ -110,7 +110,7 @@ func empty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 
 	if all {
 		eChan := make(chan error)
-		go sb.DeleteManyMessages(eChan, requeue, c)
+		go sb.DeleteManyMessages(eChan, requeue, c, delay)
 
 		done := false
 		for !done {
@@ -139,13 +139,6 @@ func empty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 		return nil
 	}
 
-	curr, err := sb.GetSourceQueueCount()
-
-	if err != nil {
-		return err
-	}
-
-	// completeMessage := "%d %s"
 	completeMessage := "%d message(s) %s"
 
 	if requeue {
@@ -154,16 +147,11 @@ func empty(sb sbc.Controller, q string, dlq, all, requeue bool) error {
 		completeMessage = fmt.Sprintf(completeMessage, c, "deleted")
 	}
 
-	if curr > 0 {
-		completeMessage += fmt.Sprintf(", %d remaining - these may have been added since the process began", curr)
-	}
-
 	fmt.Printf("%s\n", completeMessage)
 
 	if requeue {
 		sb.DisconnectTarget()
 	}
-
 	return nil
 }
 

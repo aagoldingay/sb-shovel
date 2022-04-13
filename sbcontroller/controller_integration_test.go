@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 type Config struct {
@@ -406,6 +407,8 @@ func Test_ServiceBusController_Send_And_Delete_One(t *testing.T) {
 func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 	skipCI(t)
 
+	messageCount := 5
+
 	config, err := ReadIntegrationConfig()
 	if err != nil {
 		t.Errorf("Test setup failed %v", err)
@@ -416,7 +419,7 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = sb.SetupSourceQueue(config.Queue, false, false)
+	err = sb.SetupSourceQueue(config.Queue, false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -431,7 +434,7 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 
 	sendMessages := [][]byte{}
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < messageCount; i++ {
 		sendMessages = append(sendMessages, []byte(`{"hello":"world"}`))
 	}
 
@@ -441,7 +444,7 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 	}
 
 	c, err = sb.GetSourceQueueCount()
-	if c != 5 {
+	if c != messageCount {
 		t.Errorf("Unexpected queue count: %d", c)
 	}
 	if err != nil {
@@ -449,17 +452,21 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 	}
 
 	eChan := make(chan error)
-	go sb.DeleteManyMessages(eChan, false, c)
+	go sb.DeleteManyMessages(eChan, false, c, false)
 
 	done := false
 	for !done {
 		e := <-eChan
+		if strings.Contains(e.Error(), "[status]") {
+			continue
+		}
 		if e.Error() != "context canceled" {
 			t.Error(e)
-		} else {
-			done = true
 		}
+		done = true
 	}
+
+	time.Sleep(2 * time.Second)
 
 	close(eChan)
 
@@ -469,6 +476,91 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 	}
 	if err != nil {
 		t.Error()
+	}
+
+	err = sb.DisconnectSource()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func Test_ServiceBusController_Send_And_Delete_Trigger_Status(t *testing.T) {
+	skipCI(t)
+
+	messageCount := 60
+
+	config, err := ReadIntegrationConfig()
+	if err != nil {
+		t.Errorf("Test setup failed %v", err)
+	}
+
+	sb, err := NewController(config.ConnectionString)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = sb.SetupSourceQueue(config.Queue, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	c, err := sb.GetSourceQueueCount()
+	if c != 0 {
+		t.Errorf("Unexpected queue count: %d", c)
+	}
+	if err != nil {
+		t.Error()
+	}
+
+	sendMessages := [][]byte{}
+
+	for i := 0; i < messageCount; i++ {
+		sendMessages = append(sendMessages, []byte(`{"hello":"world"}`))
+	}
+
+	err = sb.SendManyJsonMessages(false, sendMessages)
+	if err != nil {
+		t.Error()
+	}
+
+	c, err = sb.GetSourceQueueCount()
+	if c != messageCount {
+		t.Errorf("Unexpected queue count: %d", c)
+	}
+	if err != nil {
+		t.Error()
+	}
+
+	eChan := make(chan error)
+	go sb.DeleteManyMessages(eChan, false, c, false)
+
+	done := false
+	for !done {
+		e := <-eChan
+		if strings.Contains(e.Error(), "[status]") {
+			continue
+		}
+		if e.Error() != "context canceled" {
+			t.Error(e)
+		}
+		done = true
+	}
+
+	time.Sleep(2 * time.Second)
+
+	close(eChan)
+
+	c, err = sb.GetSourceQueueCount()
+	if c != 0 {
+		t.Errorf("Unexpected queue count: %d", c)
+	}
+	if err != nil {
+		t.Error()
+	}
+
+	err = sb.DisconnectSource()
+	if err != nil {
+		t.Error(err)
 	}
 }
 

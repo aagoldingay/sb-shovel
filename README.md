@@ -97,7 +97,7 @@ sb-shovel.exe -cmd dump -conn "<servicebus_uri>" -q queueName
 Purge the contents of an entire dead-letter queue
 
 ```
-sb-shovel.exe -cmd emptyAll -conn "<servicebus_uri>" -q queueName -dlq
+sb-shovel.exe -cmd emptyAll -conn "<servicebus_uri>" -q queueName -dlq -delay
 ```
 
 ## Testing
