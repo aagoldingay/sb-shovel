@@ -22,7 +22,7 @@ func (m *MockServiceBusController) DeleteOneMessage(requeue bool) error {
 	return nil
 }
 
-func (m *MockServiceBusController) DeleteManyMessages(errChan chan error, requeue bool, total int) {
+func (m *MockServiceBusController) DeleteManyMessages(errChan chan error, requeue bool, total int, delay bool) {
 	if requeue {
 		m.TargetQueueCount = m.SourceQueueCount
 	}

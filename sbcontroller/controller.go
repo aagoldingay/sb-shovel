@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	servicebus "github.com/Azure/azure-service-bus-go"
 )
@@ -21,7 +22,7 @@ const (
 
 type Controller interface {
 	DeleteOneMessage(requeue bool) error
-	DeleteManyMessages(errChan chan error, requeue bool, total int)
+	DeleteManyMessages(errChan chan error, requeue bool, total int, delay bool)
 	DisconnectQueues() error
 	DisconnectSource() error
 	DisconnectTarget() error
@@ -74,24 +75,21 @@ func (sb *ServiceBusController) DeleteOneMessage(requeue bool) error {
 	return nil
 }
 
-func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, requeue bool, total int) {
+func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, requeue bool, total int, delay bool) {
 	count := 0
-	msgs := make(chan *servicebus.Message, 3)
 	var wg sync.WaitGroup
 
-	for i := 0; i < 3; i++ {
-		go func() {
-			for m := range msgs {
-				if requeue {
-					err := sb.sendMessage(sb.target, m.Data)
-					if err != nil {
-						errChan <- err
-					}
-				}
-				m.Complete(sb.ctx)
-				wg.Done()
+	processMessage := func(m *servicebus.Message) {
+		defer wg.Done()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+		defer cancel()
+		if requeue {
+			err := sb.sendMessage(sb.target, m.Data)
+			if err != nil {
+				errChan <- err
 			}
-		}()
+		}
+		m.Complete(ctx)
 	}
 
 	innerCtx, cancel := context.WithCancel(sb.ctx)
@@ -99,22 +97,24 @@ func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, requeue b
 		count++
 		if count > 0 && count%50 == 0 {
 			errChan <- fmt.Errorf(ERR_DELETESTATUS, count, total)
+			if delay {
+				time.Sleep(250 * time.Millisecond)
+			}
 		}
 		if count == total {
 			wg.Add(1)
-			msgs <- m
-			wg.Wait()
+			go processMessage(m)
 			cancel()
 			return nil
 		}
 		wg.Add(1)
-		msgs <- m
+		go processMessage(m)
 		return nil
 	})); err != nil {
 		errChan <- err
 		return
 	}
-	close(msgs)
+	wg.Wait()
 }
 
 func (sb *ServiceBusController) DisconnectQueues() error {
