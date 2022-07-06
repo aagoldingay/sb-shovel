@@ -19,6 +19,7 @@ sb-shovel
 │   LICENSE
 │   main.go
 │   README.md
+|   releaseBundle.sh
 │
 ├───.github                             # repository configurations
 │   ├───ISSUE_TEMPLATE
@@ -91,13 +92,13 @@ sb-shovel.exe -help
 Peek-dump queue contents to a local directory:
 
 ```
-sb-shovel.exe -cmd dump -conn "<servicebus_uri>" -q queueName
+sb-shovel.exe -cmd pull -conn "<servicebus_connection_string>" -q queueName
 ```
 
 Purge the contents of an entire dead-letter queue
 
 ```
-sb-shovel.exe -cmd emptyAll -conn "<servicebus_uri>" -q queueName -dlq -delay
+sb-shovel.exe -cmd empty -conn "<servicebus_connection_string>" -q queueName -dlq -all
 ```
 
 ## Testing
