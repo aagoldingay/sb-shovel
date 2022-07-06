@@ -14,18 +14,12 @@ type MockServiceBusController struct {
 	SourceQueueClosed, TargetQueueClosed bool
 }
 
-func (m *MockServiceBusController) DeleteOneMessage(requeue bool) error {
-	m.SourceQueueCount = m.SourceQueueCount - 1
-	if requeue {
-		m.TargetQueueCount++
-	}
+func (m *MockServiceBusController) DeleteOneMessage() error {
+	m.SourceQueueCount--
 	return nil
 }
 
-func (m *MockServiceBusController) DeleteManyMessages(errChan chan error, requeue bool, total int, delay bool) {
-	if requeue {
-		m.TargetQueueCount = m.SourceQueueCount
-	}
+func (m *MockServiceBusController) DeleteManyMessages(errChan chan error, total int, delay bool) {
 	m.SourceQueueCount = 0
 	errChan <- fmt.Errorf("context canceled")
 }
@@ -49,6 +43,18 @@ func (m *MockServiceBusController) ReadSourceQueue(outChan chan []string, errCha
 		msgs = []string{}
 	}
 	errChan <- errors.New(sbc.ERR_QUEUEEMPTY)
+}
+
+func (m *MockServiceBusController) RequeueOneMessage() error {
+	m.SourceQueueCount--
+	m.TargetQueueCount++
+	return nil
+}
+
+func (m *MockServiceBusController) RequeueManyMessages(total int) error {
+	m.TargetQueueCount = m.SourceQueueCount
+	m.SourceQueueCount = 0
+	return nil
 }
 
 func (m *MockServiceBusController) SendJsonMessage(q bool, data []byte) error {

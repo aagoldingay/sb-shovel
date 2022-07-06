@@ -269,7 +269,7 @@ func Test_ServiceBusController_ReadSourceQueue_MultipleMessages_OneBatch(t *test
 	}
 
 	for i := 0; i < 5; i++ {
-		err = sb.DeleteOneMessage(false)
+		err = sb.DeleteOneMessage()
 		if err != nil {
 			t.Error(err)
 		}
@@ -340,7 +340,7 @@ func Test_ServiceBusController_ReadSourceQueue_MultipleMessages_MultipleBatches(
 	}
 
 	for i := 0; i < 10; i++ {
-		err = sb.DeleteOneMessage(false)
+		err = sb.DeleteOneMessage()
 		if err != nil {
 			t.Error(err)
 		}
@@ -390,7 +390,7 @@ func Test_ServiceBusController_Send_And_Delete_One(t *testing.T) {
 		t.Error()
 	}
 
-	err = sb.DeleteOneMessage(false)
+	err = sb.DeleteOneMessage()
 	if err != nil {
 		t.Error(err)
 	}
@@ -452,7 +452,7 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 	}
 
 	eChan := make(chan error)
-	go sb.DeleteManyMessages(eChan, false, c, false)
+	go sb.DeleteManyMessages(eChan, c, false)
 
 	done := false
 	for !done {
@@ -532,7 +532,7 @@ func Test_ServiceBusController_Send_And_Delete_Trigger_Status(t *testing.T) {
 	}
 
 	eChan := make(chan error)
-	go sb.DeleteManyMessages(eChan, false, c, false)
+	go sb.DeleteManyMessages(eChan, c, false)
 
 	done := false
 	for !done {

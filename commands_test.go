@@ -8,10 +8,10 @@ import (
 	sbmock "github.com/aagoldingay/sb-shovel/mocks"
 )
 
-func Test_Dump_Fail_EmptyQueue(t *testing.T) {
+func Test_Pull_Fail_EmptyQueue(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 0}
 
-	err := dump(m, "testqueue", false, 5)
+	err := pull(m, "testqueue", false, 5)
 	if err == nil {
 		t.Error(err)
 	}
@@ -21,10 +21,10 @@ func Test_Dump_Fail_EmptyQueue(t *testing.T) {
 	}
 }
 
-func Test_Dump_Success_OneFile(t *testing.T) {
+func Test_Pull_Success_OneFile(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 5}
 
-	err := dump(m, "testqueue", true, 5)
+	err := pull(m, "testqueue", true, 5)
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,9 +51,9 @@ func Test_Dump_Success_OneFile(t *testing.T) {
 	}
 }
 
-func Test_Dump_Success_TwoFiles(t *testing.T) {
+func Test_Pull_Success_TwoFiles(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 10}
-	err := dump(m, "testqueue", false, 5)
+	err := pull(m, "testqueue", false, 5)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,7 +88,7 @@ func Test_Dump_Success_TwoFiles(t *testing.T) {
 
 func Test_Empty_One_Fail_NoMessages(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 0}
-	err := empty(m, "testqueue", false, false, false, false)
+	err := empty(m, "testqueue", false, false, false)
 	if err.Error() != "no messages to delete" {
 		t.Error(err)
 	}
@@ -100,7 +100,7 @@ func Test_Empty_One_Fail_NoMessages(t *testing.T) {
 
 func Test_Empty_One_Success(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 1}
-	err := empty(m, "testqueue", false, false, false, false)
+	err := empty(m, "testqueue", false, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -114,9 +114,9 @@ func Test_Empty_One_Success(t *testing.T) {
 	}
 }
 
-func Test_Empty_One_Requeue_Success(t *testing.T) {
+func Test_Requeue_One_Success(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 1, TargetQueueCount: 0}
-	err := empty(m, "testqueue", true, false, true, false)
+	err := requeue(m, "testqueue", false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -135,21 +135,17 @@ func Test_Empty_One_Requeue_Success(t *testing.T) {
 	}
 }
 
-func Test_Empty_One_Requeue_Fail_TargetDlq(t *testing.T) {
+func Test_Requeue_One_Fail_TargetDlq(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 1, TargetQueueCount: 0}
-	err := empty(m, "testqueue", false, false, true, false)
+	err := requeue(m, "testqueue", false, false)
 	if err.Error() != "cannot requeue messages directly to a dead letter queue" {
 		t.Error(err)
-	}
-
-	if m.SourceQueueClosed != true {
-		t.Error("Queue not closed")
 	}
 }
 
 func Test_Empty_All_Success(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 10}
-	err := empty(m, "testqueue", false, true, false, false)
+	err := empty(m, "testqueue", false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -163,9 +159,9 @@ func Test_Empty_All_Success(t *testing.T) {
 	}
 }
 
-func Test_Empty_All_Requeue_Success(t *testing.T) {
+func Test_Requeue_All_Success(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 10, TargetQueueCount: 0}
-	err := empty(m, "testqueue", true, true, true, false)
+	err := requeue(m, "testqueue", true, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -184,15 +180,11 @@ func Test_Empty_All_Requeue_Success(t *testing.T) {
 	}
 }
 
-func Test_Empty_All_Requeue_Fail_TargetDlq(t *testing.T) {
+func Test_Requeue_All_Fail_TargetDlq(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 10, TargetQueueCount: 0}
-	err := empty(m, "testqueue", false, true, true, false)
+	err := requeue(m, "testqueue", true, false)
 	if err.Error() != "cannot requeue messages directly to a dead letter queue" {
 		t.Error(err)
-	}
-
-	if m.SourceQueueClosed != true {
-		t.Error("Queue not closed")
 	}
 }
 
