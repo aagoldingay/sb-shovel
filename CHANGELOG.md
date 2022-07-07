@@ -1,3 +1,23 @@
+# 0.4
+
+ADDED
+
+- `releaseBundle.sh`
+    - Bash script to simplify the production and naming of executables
+
+CHANGED
+
+- Simplified command names
+    - `dump` -> `pull`
+    - `sendFromFile` -> `send`
+    - `emptyOne` -> `delete`
+    - `emptyAll` -> `delete -all`
+- Split `requeue` functionality from `empty`
+    - Fixes [#11](https://github.com/aagoldingay/sb-shovel/issues/11) by separating incompatible concurrency
+    - Requeue one message: `requeue`
+    - Requeue all messages: `requeue -all`
+- Delete and Requeue all progressive output now overwrites the previous line
+
 # 0.3
 
 CHANGED

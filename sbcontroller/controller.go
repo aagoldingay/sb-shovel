@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ERR_DELETESTATUS     string = "[status] completed %d of %d messages"
+	ERR_DELETESTATUS     string = "\r[status] completed %d of %d messages"
 	ERR_NOMESSAGESTOSEND string = "no messages to send"
 	ERR_NOQUEUEOBJECT    string = "no queue to close"
 	ERR_NOTFOUND         string = "could not find service bus queue - 404"
@@ -21,14 +21,16 @@ const (
 )
 
 type Controller interface {
-	DeleteOneMessage(requeue bool) error
-	DeleteManyMessages(errChan chan error, requeue bool, total int, delay bool)
+	DeleteOneMessage() error
+	DeleteManyMessages(errChan chan error, total int, delay bool)
 	DisconnectQueues() error
 	DisconnectSource() error
 	DisconnectTarget() error
 	GetSourceQueueCount() (int, error)
 	GetTargetQueueCount() (int, error)
 	ReadSourceQueue(outChan chan []string, errChan chan error, maxWrite int)
+	RequeueOneMessage() error
+	RequeueManyMessages(total int) error
 	SendJsonMessage(q bool, data []byte) error
 	SendManyJsonMessages(q bool, data [][]byte) error
 	SetupSourceQueue(name string, dlq, purge bool) error
@@ -60,14 +62,8 @@ func NewController(conn string) (Controller, error) {
 		target: nil}, nil
 }
 
-func (sb *ServiceBusController) DeleteOneMessage(requeue bool) error {
+func (sb *ServiceBusController) DeleteOneMessage() error {
 	if err := sb.source.ReceiveOne(sb.ctx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
-		if requeue {
-			err := sb.sendMessage(sb.target, m.Data)
-			if err != nil {
-				return err
-			}
-		}
 		return m.Complete(sb.ctx)
 	})); err != nil {
 		return err
@@ -75,7 +71,7 @@ func (sb *ServiceBusController) DeleteOneMessage(requeue bool) error {
 	return nil
 }
 
-func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, requeue bool, total int, delay bool) {
+func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, total int, delay bool) {
 	count := 0
 	var wg sync.WaitGroup
 
@@ -83,12 +79,6 @@ func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, requeue b
 		defer wg.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
 		defer cancel()
-		if requeue {
-			err := sb.sendMessage(sb.target, m.Data)
-			if err != nil {
-				errChan <- err
-			}
-		}
 		m.Complete(ctx)
 	}
 
@@ -193,6 +183,59 @@ func (sb *ServiceBusController) ReadSourceQueue(outChan chan []string, errChan c
 		}
 		messagesOutput = append(messagesOutput, string(msg.Data))
 	}
+}
+
+func (sb *ServiceBusController) RequeueOneMessage() error {
+	if err := sb.source.ReceiveOne(sb.ctx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
+		err := sb.sendMessage(sb.target, m.Data)
+		if err != nil {
+			return err
+		}
+		return m.Complete(sb.ctx)
+	})); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (sb *ServiceBusController) RequeueManyMessages(total int) error {
+	count := 0
+	processMessage := func(m *servicebus.Message) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+		defer cancel()
+		err := sb.sendMessage(sb.target, m.Data)
+		if err != nil {
+			return err
+		}
+		m.Complete(ctx)
+		return nil
+	}
+
+	innerCtx, cancel := context.WithCancel(sb.ctx)
+	if err := sb.source.Receive(innerCtx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
+		count++
+		if count > 0 && count%50 == 0 {
+			fmt.Printf(ERR_DELETESTATUS, count, total)
+		}
+		if count == total {
+			err := processMessage(m)
+			if err != nil {
+				cancel()
+				return err
+			}
+			cancel()
+			return nil
+		}
+		err := processMessage(m)
+		if err != nil {
+			cancel()
+			return err
+		}
+		return nil
+	})); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (sb *ServiceBusController) SendJsonMessage(q bool, data []byte) error {

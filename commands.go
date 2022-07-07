@@ -10,7 +10,7 @@ import (
 	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
 
-func dump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
+func pull(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 	err := sb.SetupSourceQueue(q, dlq, false)
 	if err != nil {
 		return err
@@ -72,23 +72,58 @@ func dump(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 	return nil
 }
 
-func empty(sb sbc.Controller, q string, dlq, all, requeue, delay bool) error {
+func requeue(sb sbc.Controller, q string, all, dlq bool) error {
+	if !dlq {
+		return fmt.Errorf("cannot requeue messages directly to a dead letter queue")
+	}
+
+	err := sb.SetupSourceQueue(q, dlq, true)
+
+	if err != nil {
+		return err
+	}
+
+	err = sb.SetupTargetQueue(q, !dlq, true)
+	if err != nil {
+		return fmt.Errorf("problem setting up target queue: %v", err)
+	}
+	defer sb.DisconnectQueues()
+
+	if all {
+		c, err := sb.GetSourceQueueCount()
+
+		if err != nil {
+			return err
+		}
+
+		if c == 0 {
+			return fmt.Errorf("no messages to requeue")
+		}
+
+		fmt.Printf("%d messages to requeue\n", c)
+		err = sb.RequeueManyMessages(c)
+		if err != nil {
+			return err
+		}
+		fmt.Println("messages requeued")
+	} else {
+		err = sb.RequeueOneMessage()
+		if err != nil {
+			return err
+		}
+		fmt.Println("one message requeued")
+	}
+
+	return nil
+}
+
+func delete(sb sbc.Controller, q string, dlq, all, delay bool) error {
 	err := sb.SetupSourceQueue(q, dlq, true)
 
 	if err != nil {
 		return err
 	}
 	defer sb.DisconnectSource()
-
-	if requeue {
-		if !dlq {
-			return fmt.Errorf("cannot requeue messages directly to a dead letter queue")
-		}
-		err = sb.SetupTargetQueue(q, !dlq, true)
-		if err != nil {
-			return fmt.Errorf("problem setting up target queue: %v", err)
-		}
-	}
 
 	c, err := sb.GetSourceQueueCount()
 
@@ -100,23 +135,15 @@ func empty(sb sbc.Controller, q string, dlq, all, requeue, delay bool) error {
 	}
 
 	if all {
-		msgCount := "%d messages to %s\n"
-		if requeue {
-			fmt.Printf(msgCount, c, "requeue")
-		} else {
-			fmt.Printf(msgCount, c, "delete")
-		}
-	}
-
-	if all {
+		fmt.Printf("%d messages to delete\n", c)
 		eChan := make(chan error)
-		go sb.DeleteManyMessages(eChan, requeue, c, delay)
+		go sb.DeleteManyMessages(eChan, c, delay)
 
 		done := false
 		for !done {
 			e := <-eChan
 			if strings.Contains(e.Error(), "[status]") {
-				fmt.Println(e.Error())
+				fmt.Print(e.Error())
 				continue
 			}
 			if e.Error() != "context canceled" {
@@ -126,32 +153,16 @@ func empty(sb sbc.Controller, q string, dlq, all, requeue, delay bool) error {
 		}
 		close(eChan)
 	} else {
-		err = sb.DeleteOneMessage(requeue)
+		err = sb.DeleteOneMessage()
 		if err != nil {
 			return err
 		}
-		if requeue {
-			fmt.Println("1 message requeued")
-			sb.DisconnectTarget()
-		} else {
-			fmt.Println("1 message deleted")
-		}
+		fmt.Println("1 message deleted")
 		return nil
 	}
 
-	completeMessage := "%d message(s) %s"
+	fmt.Printf("%d message(s) deleted\n", c)
 
-	if requeue {
-		completeMessage = fmt.Sprintf(completeMessage, c, "requeued")
-	} else {
-		completeMessage = fmt.Sprintf(completeMessage, c, "deleted")
-	}
-
-	fmt.Printf("%s\n", completeMessage)
-
-	if requeue {
-		sb.DisconnectTarget()
-	}
 	return nil
 }
 
