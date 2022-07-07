@@ -10,14 +10,14 @@ import (
 var dir, command, connectionString, queueName /*, tmpl*/ string
 var all, isDlq, delay, help bool
 var maxWriteCache int
-var commandList = map[string]bool{"empty": true, "pull": true, "requeue": true, "send": true}
+var commandList = map[string]bool{"delete": true, "pull": true, "requeue": true, "send": true}
 
 var version = "v0.4"
 
 func outputCommands() string {
 	s := ""
-	// empty
-	s += "emptyAll\n\tremove messages from queue\n\t"
+	// delete
+	s += "delete\n\tremove messages from queue\n\t"
 	s += "requires: -conn, -q\n\toptional: -all, -dlq, -delay\n\t"
 	s += "WARNING: providing '-all' will delete all messages\n\t"
 	s += "WARNING: execution without '-delay' may cause issues if you are dealing with extremely large queues"
@@ -54,7 +54,6 @@ func main() {
 	flag.StringVar(&dir, "dir", "", "directory of file containing json messages to send")
 	flag.BoolVar(&all, "all", false, "perform the operation on an entire entity")
 	flag.BoolVar(&isDlq, "dlq", false, "point to the defined queue's deadletter subqueue")
-	// flag.BoolVar(&requeue, "rq", false, "resubmit (requeue) messages")
 	flag.BoolVar(&delay, "delay", false, "include a 250ms delay for every 50 messages sent")
 	flag.BoolVar(&help, "help", false, "information about this tool")
 	flag.IntVar(&maxWriteCache, "out-lines", 100, "number of lines per file")
@@ -62,7 +61,7 @@ func main() {
 
 	if _, cmdPres := commandList[command]; !cmdPres || help || (cmdPres && (len(connectionString) == 0 || len(queueName) == 0)) {
 		fmt.Printf("sb-shovel %s\nManage large message operations on a given Service Bus.\n\n", version)
-		fmt.Println("Example Usage:\n\tsb-shovel.exe -cmd dump -conn \"<servicebus_uri>\" -q queueName\n\tsb-shovel.exe -cmd emptyAll -conn \"<servicebus_uri>\" -q queueName -dlq -rq")
+		fmt.Println("Example Usage:\n\tsb-shovel.exe -cmd pull -conn \"<servicebus_connectionstring>\" -q queueName\n\tsb-shovel.exe -cmd delete -conn \"<servicebus_uri>\" -q queueName -dlq")
 		flag.PrintDefaults()
 		return
 	}
@@ -87,19 +86,17 @@ func main() {
 			fmt.Println(err)
 		}
 		return
-	case "empty":
+	case "delete":
 		if delay {
 			fmt.Println("Delay is not supported for this command")
 			return
 		}
-		err := empty(sb, queueName, isDlq, all, delay)
-		// err := empty(sb, queueName, isDlq, false, requeue, false)
+		err := delete(sb, queueName, isDlq, all, delay)
 		if err != nil {
 			fmt.Println(err)
 		}
 		return
 	case "requeue":
-		// err := empty(sb, queueName, isDlq, true, requeue, delay)
 		if delay {
 			fmt.Println("Delay is not supported for this command")
 			return

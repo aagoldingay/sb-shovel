@@ -82,13 +82,12 @@ func requeue(sb sbc.Controller, q string, all, dlq bool) error {
 	if err != nil {
 		return err
 	}
-	defer sb.DisconnectSource()
 
 	err = sb.SetupTargetQueue(q, !dlq, true)
 	if err != nil {
 		return fmt.Errorf("problem setting up target queue: %v", err)
 	}
-	defer sb.DisconnectTarget()
+	defer sb.DisconnectQueues()
 
 	if all {
 		c, err := sb.GetSourceQueueCount()
@@ -98,7 +97,7 @@ func requeue(sb sbc.Controller, q string, all, dlq bool) error {
 		}
 
 		if c == 0 {
-			return fmt.Errorf("no messages to delete")
+			return fmt.Errorf("no messages to requeue")
 		}
 
 		fmt.Printf("%d messages to requeue\n", c)
@@ -106,17 +105,19 @@ func requeue(sb sbc.Controller, q string, all, dlq bool) error {
 		if err != nil {
 			return err
 		}
+		fmt.Println("messages requeued")
 	} else {
 		err = sb.RequeueOneMessage()
 		if err != nil {
 			return err
 		}
+		fmt.Println("one message requeued")
 	}
 
 	return nil
 }
 
-func empty(sb sbc.Controller, q string, dlq, all, delay bool) error {
+func delete(sb sbc.Controller, q string, dlq, all, delay bool) error {
 	err := sb.SetupSourceQueue(q, dlq, true)
 
 	if err != nil {
@@ -142,7 +143,7 @@ func empty(sb sbc.Controller, q string, dlq, all, delay bool) error {
 		for !done {
 			e := <-eChan
 			if strings.Contains(e.Error(), "[status]") {
-				fmt.Printf("\r%s", e.Error())
+				fmt.Print(e.Error())
 				continue
 			}
 			if e.Error() != "context canceled" {

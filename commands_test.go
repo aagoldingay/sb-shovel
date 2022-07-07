@@ -86,9 +86,9 @@ func Test_Pull_Success_TwoFiles(t *testing.T) {
 	}
 }
 
-func Test_Empty_One_Fail_NoMessages(t *testing.T) {
+func Test_Delete_One_Fail_NoMessages(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 0}
-	err := empty(m, "testqueue", false, false, false)
+	err := delete(m, "testqueue", false, false, false)
 	if err.Error() != "no messages to delete" {
 		t.Error(err)
 	}
@@ -98,9 +98,9 @@ func Test_Empty_One_Fail_NoMessages(t *testing.T) {
 	}
 }
 
-func Test_Empty_One_Success(t *testing.T) {
+func Test_Delete_One_Success(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 1}
-	err := empty(m, "testqueue", false, false, false)
+	err := delete(m, "testqueue", false, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,9 +143,9 @@ func Test_Requeue_One_Fail_TargetDlq(t *testing.T) {
 	}
 }
 
-func Test_Empty_All_Success(t *testing.T) {
+func Test_Delete_All_Success(t *testing.T) {
 	m := &sbmock.MockServiceBusController{SourceQueueCount: 10}
-	err := empty(m, "testqueue", false, true, false)
+	err := delete(m, "testqueue", false, true, false)
 	if err != nil {
 		t.Error(err)
 	}

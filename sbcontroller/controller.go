@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ERR_DELETESTATUS     string = "[status] completed %d of %d messages"
+	ERR_DELETESTATUS     string = "\r[status] completed %d of %d messages"
 	ERR_NOMESSAGESTOSEND string = "no messages to send"
 	ERR_NOQUEUEOBJECT    string = "no queue to close"
 	ERR_NOTFOUND         string = "could not find service bus queue - 404"
@@ -215,7 +215,7 @@ func (sb *ServiceBusController) RequeueManyMessages(total int) error {
 	if err := sb.source.Receive(innerCtx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
 		count++
 		if count > 0 && count%50 == 0 {
-			return fmt.Errorf(ERR_DELETESTATUS, count, total)
+			fmt.Printf(ERR_DELETESTATUS, count, total)
 		}
 		if count == total {
 			err := processMessage(m)
@@ -223,6 +223,7 @@ func (sb *ServiceBusController) RequeueManyMessages(total int) error {
 				cancel()
 				return err
 			}
+			cancel()
 			return nil
 		}
 		err := processMessage(m)

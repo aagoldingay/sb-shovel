@@ -33,6 +33,18 @@ func (m *MockServiceBusController) DisconnectTarget() error {
 	return nil
 }
 
+func (m *MockServiceBusController) DisconnectQueues() error {
+	err := m.DisconnectSource()
+	if err != nil {
+		return err
+	}
+	err = m.DisconnectTarget()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *MockServiceBusController) ReadSourceQueue(outChan chan []string, errChan chan error, maxWrite int) {
 	msgs := []string{}
 	for i := 0; i < m.SourceQueueCount/5; i++ {

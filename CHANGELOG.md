@@ -10,13 +10,13 @@ CHANGED
 - Simplified command names
     - `dump` -> `pull`
     - `sendFromFile` -> `send`
-    - `emptyOne` -> `empty`
-    - `emptyAll` -> `empty -all`
+    - `emptyOne` -> `delete`
+    - `emptyAll` -> `delete -all`
 - Split `requeue` functionality from `empty`
     - Fixes [#11](https://github.com/aagoldingay/sb-shovel/issues/11) by separating incompatible concurrency
     - Requeue one message: `requeue`
     - Requeue all messages: `requeue -all`
-- Empty and Requeue all progressive output now overwrites the previous line
+- Delete and Requeue all progressive output now overwrites the previous line
 
 # 0.3
 
