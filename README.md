@@ -29,6 +29,9 @@ sb-shovel
 │   └───workflows
 │           go_ci.yml
 │
+├───config
+│       config.go
+|
 ├───io
 │       files.go
 │       files_test.go
@@ -64,6 +67,7 @@ Easy:
 go install github.com/aagoldingay/sb-shovel
 ```
 
+Git clone:
 ```
 cd $GOPATH/src
 git clone <repo>

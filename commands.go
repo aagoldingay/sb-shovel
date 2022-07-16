@@ -6,9 +6,56 @@ import (
 	"sync"
 	"time"
 
+	cc "github.com/aagoldingay/sb-shovel/config"
 	sbio "github.com/aagoldingay/sb-shovel/io"
 	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
+
+func config(config cc.ConfigManager, args []string) {
+	err := config.LoadConfig()
+	if err != nil && err.Error() != cc.ERR_NOCONFIG {
+		fmt.Println(err)
+		return
+	}
+
+	switch args[0] {
+	case "list":
+		if len(args) != 1 {
+			fmt.Println("unexpected arguments for list command\nusage: sb-shovel -cmd config list")
+			return
+		}
+		fmt.Println(config.ListConfig())
+	case "remove":
+		if len(args) != 2 {
+			fmt.Println("unexpected arguments for remove command\nusage: sb-shovel -cmd config remove KEY_NAME")
+			return
+		}
+		err := config.DeleteConfigValue(args[1])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if err = config.SaveConfig(); err != nil {
+			fmt.Printf("error saving config: %s\n", err.Error())
+			return
+		}
+		fmt.Printf("%s removed from config\n", args[1])
+	case "update":
+		if len(args) != 3 {
+			fmt.Println("unexpected arguments for update command\nusage: sb-shovel -cmd config update KEY_NAME KEY_VALUE")
+			return
+		}
+		config.UpdateConfig(args[1], args[2])
+		if err := config.SaveConfig(); err != nil {
+			fmt.Printf("error saving config: %s\n", err.Error())
+			return
+		}
+
+		fmt.Printf("%s value updated in config\n", args[1])
+	default:
+		fmt.Println("unexpected config command provided")
+	}
+}
 
 func pull(sb sbc.Controller, q string, dlq bool, maxWrite int) error {
 	err := sb.SetupSourceQueue(q, dlq, false)
@@ -149,6 +196,7 @@ func delete(sb sbc.Controller, q string, dlq, all, delay bool) error {
 			if e.Error() != "context canceled" {
 				return e
 			}
+			fmt.Println("") // blank line to separate status overwrites from completion messages
 			done = true
 		}
 		close(eChan)
