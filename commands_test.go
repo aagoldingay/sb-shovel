@@ -9,25 +9,6 @@ import (
 	sbmock "github.com/aagoldingay/sb-shovel/mocks"
 )
 
-func Test_Config_Update_New(t *testing.T) {
-	cfg, err := cc.NewConfigController()
-	if err != nil {
-		t.Error(err)
-	}
-
-	config(cfg, []string{"update", "TEST_CONFIG_UPDATE_NEW", "TEST_VALUE"})
-
-	v, err := cfg.GetConfigValue("TEST_CONFIG_UPDATE_NEW")
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	if v != "TEST_VALUE" {
-		t.Errorf("value for TEST_CONFIG_UPDATE_NEW was not found")
-	}
-}
-
 func Test_Config_Update_Existing(t *testing.T) {
 	cfg, err := cc.NewConfigController()
 	if err != nil {
