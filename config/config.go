@@ -48,7 +48,6 @@ func NewConfigController() (ConfigManager, error) {
 		file:    f,
 		args:    make(map[string]string),
 		updated: false}, nil
-	// loaded:  false,
 }
 
 func (cc *ConfigController) UpdateConfig(k string, v string) {
