@@ -1,3 +1,16 @@
+# 0.5.0
+
+ADDED
+- `config` command
+    - Persist Service Bus connection strings to a file in the same location as the executable
+    - Usage:
+        - `sb-shovel -cmd config update KEY_NAME KEY_VALUE`
+        - `sb-shovel -cmd config list`
+        - `sb-shovel -cmd config remove KEY_NAME`
+
+UPDATED
+- New line print for `delete -all` command following status messages
+
 # 0.4
 
 ADDED

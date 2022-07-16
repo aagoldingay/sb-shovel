@@ -3,19 +3,28 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 
+	cc "github.com/aagoldingay/sb-shovel/config"
 	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
 
 var dir, command, connectionString, queueName /*, tmpl*/ string
 var all, isDlq, delay, help bool
 var maxWriteCache int
-var commandList = map[string]bool{"delete": true, "pull": true, "requeue": true, "send": true}
+var commandList = map[string]bool{"config": true, "delete": true, "pull": true, "requeue": true, "send": true}
 
-var version = "v0.4"
+var version = "v0.5.0"
 
 func outputCommands() string {
 	s := ""
+	// config
+	s += "config\n\tpersist Service Bus connection strings to a file in the same location as the executable\n\t"
+	s += "sb-shovel -cmd config update KEY_NAME KEY_VALUE\n\t"
+	s += "sb-shovel -cmd config list\n\t"
+	s += "sb-shovel -cmd config remove KEY_NAME"
+	s += "\n"
+
 	// delete
 	s += "delete\n\tremove messages from queue\n\t"
 	s += "requires: -conn, -q\n\toptional: -all, -dlq, -delay\n\t"
@@ -46,6 +55,13 @@ func outputCommands() string {
 	return s
 }
 
+func checkIfConfig(s string) (bool, string) {
+	if strings.HasPrefix(s, "cfg|") {
+		return true, strings.Split(s, "|")[1]
+	}
+	return false, ""
+}
+
 func main() {
 	flag.StringVar(&connectionString, "conn", "", "service bus connection string\ne.g. \"Endpoint=sb://<service_bus>.servicebus.windows.net/;SharedAccessKeyName=<key_name>;SharedAccessKey=<key_value>\"")
 	flag.StringVar(&queueName, "q", "", "service bus queue name")
@@ -58,20 +74,59 @@ func main() {
 	flag.BoolVar(&help, "help", false, "information about this tool")
 	flag.IntVar(&maxWriteCache, "out-lines", 100, "number of lines per file")
 	flag.Parse()
+	args := flag.Args()
 
-	if _, cmdPres := commandList[command]; !cmdPres || help || (cmdPres && (len(connectionString) == 0 || len(queueName) == 0)) {
+	if _, cmdPres := commandList[command]; !cmdPres || help ||
+		(cmdPres && command != "config" && (len(connectionString) == 0 || len(queueName) == 0)) && len(args) > 0 ||
+		(cmdPres && command == "config" && len(args) == 0) {
 		fmt.Printf("sb-shovel %s\nManage large message operations on a given Service Bus.\n\n", version)
 		fmt.Println("Example Usage:\n\tsb-shovel.exe -cmd pull -conn \"<servicebus_connectionstring>\" -q queueName\n\tsb-shovel.exe -cmd delete -conn \"<servicebus_uri>\" -q queueName -dlq")
 		flag.PrintDefaults()
 		return
 	}
 
-	sb, err := sbc.NewController(connectionString)
+	cfg, err := cc.NewConfigController()
 	if err != nil {
 		fmt.Println(err)
 	}
 
+	var sb sbc.Controller
+
+	if command != "config" {
+		if isConfig, key := checkIfConfig(connectionString); isConfig {
+			err := cfg.LoadConfig()
+			if err != nil && err.Error() != cc.ERR_NOCONFIG {
+				fmt.Println(err)
+				return
+			}
+			connectionString, err = cfg.GetConfigValue(key)
+			if err != nil || connectionString == "" {
+				fmt.Println("attribute not found in config.")
+				return
+			}
+			fmt.Printf("connecting to %s\n", key)
+		}
+		sb, err = sbc.NewController(connectionString)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
 	switch command {
+	case "config":
+		if delay {
+			fmt.Println("-delay is not supported for this command")
+			return
+		}
+		if isDlq {
+			fmt.Println("-dlq is not supported by this command")
+			return
+		}
+		if dir != "" {
+			fmt.Println("-dir is not supported by this command")
+		}
+		config(cfg, args)
+		return
 	case "pull":
 		if maxWriteCache < 1 {
 			fmt.Println("Value for -out-lines is not valid. Must be >= 1")

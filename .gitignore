@@ -23,6 +23,7 @@
 *.tfstate*
 
 # sb-shovel
+.sb-shovel
 sb-shovel-output
 integration.json
 
