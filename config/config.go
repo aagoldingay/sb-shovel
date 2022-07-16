@@ -104,7 +104,6 @@ func (cc *ConfigController) NewConfigFile() error {
 	return nil
 }
 
-// CALL AT END OF MAIN FUNC
 func (cc *ConfigController) SaveConfig() error {
 	if !cc.updated {
 		return errors.New(ERR_NOCHANGES)
