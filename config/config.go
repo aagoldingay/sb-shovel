@@ -1,3 +1,12 @@
+// Package config is used to persist key/value pairs to a hidden file in the same location as an executable.
+//
+// Usage:
+// - Initiate a ConfigController using NewConfigController("myApp") to produce a config file .myApp
+// - Load an existing config using LoadConfig()
+// - List present key/value pairs (staged or loaded from config) using ListConfig()
+// - Retrieve config settings using GetConfigValue(...)
+// - Stage key/value pairs to the ConfigController using UpdateConfig(...), DeleteConfigValue(...)
+// - Save staged changes to the config file using SaveConfig()
 package config
 
 import (
@@ -18,6 +27,7 @@ const (
 	CHAR_DELIMITER  string = "|"
 )
 
+// ConfigManager is a generic wrapper for controlling config interactions.
 type ConfigManager interface {
 	UpdateConfig(k string, v string)
 	DeleteConfigValue(k string) error
@@ -30,6 +40,13 @@ type ConfigManager interface {
 	formatMap() string
 }
 
+// ConfigController is the concrete implementation of ConfigManager
+//
+// This contains a map of key/value pairs from an existing config file, or any staged changes made during a session, that have not yet been saved.
+//
+// Any changes which have not been saved by the time the process exits, will be lost.
+//
+// Call SaveConfig() before the end of the process to update the persisted config file.
 type ConfigController struct {
 	ConfigManager
 	file string
@@ -38,23 +55,34 @@ type ConfigController struct {
 	updated bool
 }
 
-func NewConfigController() (ConfigManager, error) {
+// NewConfigController creates a new ConfigController.
+//
+// name: This parameter configures the filename and, for best practice, should be the name of the executable only.
+//
+// Example for `myApp.exe`: NewConfigController("myApp") creates .myApp config file.
+func NewConfigController(name string) (ConfigManager, error) {
 	ex, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	f := filepath.Dir(ex) + "/.sb-shovel"
+	f := filepath.Dir(ex) + fmt.Sprintf("/.%s", name)
 	return &ConfigController{
 		file:    f,
 		args:    make(map[string]string),
 		updated: false}, nil
 }
 
+// UpdateConfig adds a key/value pair to the ConfigController struct.
+//
+// WARNING: This does not automatically update the config file. Use SaveConfig() to persist to storage.
 func (cc *ConfigController) UpdateConfig(k string, v string) {
 	cc.args[k] = v
 	cc.updated = true
 }
 
+// DeleteConfigValue deletes a config setting by looking for the key.
+//
+// WARNING: This does not automatically update the config file. Use SaveConfig() to persist to storage.
 func (cc *ConfigController) DeleteConfigValue(k string) error {
 	if len(cc.args) == 0 {
 		return errors.New(ERR_CONFIGEMPTY)
@@ -64,6 +92,10 @@ func (cc *ConfigController) DeleteConfigValue(k string) error {
 	return nil
 }
 
+// GetConfigValue retrieves a value for a provided key, from ConfigController.
+//
+// NOTE: This will be empty in a new session unless LoadConfig() is called, first.
+// NOTE: Staged config updates are accessible.
 func (cc *ConfigController) GetConfigValue(k string) (string, error) {
 	if len(cc.args) == 0 {
 		return "", errors.New(ERR_CONFIGEMPTY)
@@ -71,6 +103,7 @@ func (cc *ConfigController) GetConfigValue(k string) (string, error) {
 	return cc.args[k], nil
 }
 
+// LoadConfig reads the file of the same name passed in to NewConfigController.
 func (cc *ConfigController) LoadConfig() error {
 	cfg, err := ioutil.ReadFile(cc.file)
 	if err != nil {
@@ -83,6 +116,7 @@ func (cc *ConfigController) LoadConfig() error {
 	return nil
 }
 
+// ListConfig outputs existing key/value pairs.
 func (cc *ConfigController) ListConfig() string {
 	if len(cc.args) == 0 {
 		return ERR_CONFIGEMPTY
@@ -94,6 +128,7 @@ func (cc *ConfigController) ListConfig() string {
 	return s
 }
 
+// NewConfigFile creates a new file with the name passed in to NewConfigController.
 func (cc *ConfigController) NewConfigFile() error {
 	if cc.file == "" {
 		return errors.New(ERR_PATHEMPTY)
@@ -104,6 +139,9 @@ func (cc *ConfigController) NewConfigFile() error {
 	return nil
 }
 
+// SaveConfig overwrites the config file with the key/value pairs staged and/or loaded from config.
+//
+// This only runs if a change has been staged by UpdateConfig() or DeleteConfigValue()
 func (cc *ConfigController) SaveConfig() error {
 	if !cc.updated {
 		return errors.New(ERR_NOCHANGES)

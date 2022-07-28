@@ -3,6 +3,7 @@ package mocks
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
@@ -85,6 +86,15 @@ func (m *MockServiceBusController) SetupSourceQueue(name string, dlq, purge bool
 
 func (m *MockServiceBusController) SetupTargetQueue(name string, dlq, purge bool) error {
 	return nil
+}
+
+func (m *MockServiceBusController) TidyMessages(errChan chan error, rex *regexp.Regexp, execute bool, total int) {
+	if execute {
+		m.SourceQueueCount -= 2
+	}
+	errChan <- fmt.Errorf(sbc.ERR_FOUNDPATTERN, "abbc")
+	errChan <- fmt.Errorf(sbc.ERR_FOUNDPATTERN, "abbbc")
+	errChan <- fmt.Errorf("context canceled")
 }
 
 func (m *MockServiceBusController) GetSourceQueueCount() (int, error) {
