@@ -9,12 +9,12 @@ import (
 	sbc "github.com/aagoldingay/sb-shovel/sbcontroller"
 )
 
-var dir, command, connectionString, queueName /*, tmpl*/ string
-var all, isDlq, delay, help bool
+var dir, command, connectionString, queueName, pattern /*, tmpl*/ string
+var all, isDlq, delay, help, execute bool
 var maxWriteCache int
-var commandList = map[string]bool{"config": true, "delete": true, "pull": true, "requeue": true, "send": true}
+var commandList = map[string]bool{"config": true, "delete": true, "pull": true, "requeue": true, "send": true, "tidy": true}
 
-var version = "v0.5.0"
+var version = "v0.6.0"
 
 func outputCommands() string {
 	s := ""
@@ -51,7 +51,15 @@ func outputCommands() string {
 	s += "requires: -conn, -q, -dir\n\toptional: -dlq\n\t"
 	s += "WARNING: max read size for a file line is 64*4096 characters\n\t"
 	s += "WARNING: ensure messages are properly formatted before sending"
-	//s += "\n"
+	s += "\n"
+
+	// tidy
+	s += "tidy\n\tselectively delete messages containing a regex pattern\n\t"
+	s += "requires: -conn, -q, -pattern\n\toptional: -x"
+	s += "WARNING: -x (execute) must be provided to delete any matching messages\n\t"
+	s += "WARNING: Using this command abandons messages that do not match, or matched messages when `-x` is not provided\n\t"
+	s += "NOTE: refer to the approved syntax: https://github.com/google/re2/wiki/Syntax"
+	// s += "\n"
 	return s
 }
 
@@ -66,10 +74,12 @@ func main() {
 	flag.StringVar(&connectionString, "conn", "", "service bus connection string\ne.g. \"Endpoint=sb://<service_bus>.servicebus.windows.net/;SharedAccessKeyName=<key_name>;SharedAccessKey=<key_value>\"")
 	flag.StringVar(&queueName, "q", "", "service bus queue name")
 	flag.StringVar(&command, "cmd", "", outputCommands())
+	flag.StringVar(&pattern, "pattern", "", "regex pattern to match against message contents")
 	// flag.StringVar(&tmpl, "template", `{{.Data | printf "%s"}}`, "template syntax: https://pkg.go.dev/text/template\nmessage attributes: see https://pkg.go.dev/github.com/Azure/azure-service-bus-go#Message")
 	flag.StringVar(&dir, "dir", "", "directory of file containing json messages to send")
 	flag.BoolVar(&all, "all", false, "perform the operation on an entire entity")
 	flag.BoolVar(&isDlq, "dlq", false, "point to the defined queue's deadletter subqueue")
+	flag.BoolVar(&execute, "x", false, "tidy command: perform delete operation")
 	flag.BoolVar(&delay, "delay", false, "include a 250ms delay for every 50 messages sent")
 	flag.BoolVar(&help, "help", false, "information about this tool")
 	flag.IntVar(&maxWriteCache, "out-lines", 100, "number of lines per file")
@@ -80,12 +90,12 @@ func main() {
 		(cmdPres && command != "config" && (len(connectionString) == 0 || len(queueName) == 0)) && len(args) > 0 ||
 		(cmdPres && command == "config" && len(args) == 0) {
 		fmt.Printf("sb-shovel %s\nManage large message operations on a given Service Bus.\n\n", version)
-		fmt.Println("Example Usage:\n\tsb-shovel.exe -cmd pull -conn \"<servicebus_connectionstring>\" -q queueName\n\tsb-shovel.exe -cmd delete -conn \"<servicebus_uri>\" -q queueName -dlq")
+		fmt.Println("Example Usage:\n\tsb-shovel.exe -cmd pull -conn \"<servicebus_connectionstring>\" -q queueName\n\tsb-shovel.exe -cmd delete -conn \"<servicebus_connectionstring>\" -q queueName -dlq")
 		flag.PrintDefaults()
 		return
 	}
 
-	cfg, err := cc.NewConfigController()
+	cfg, err := cc.NewConfigController("sb-shovel")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -106,7 +116,7 @@ func main() {
 			}
 			fmt.Printf("connecting to %s\n", key)
 		}
-		sb, err = sbc.NewController(connectionString)
+		sb, err = sbc.NewServiceBusController(connectionString)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -124,6 +134,7 @@ func main() {
 		}
 		if dir != "" {
 			fmt.Println("-dir is not supported by this command")
+			return
 		}
 		config(cfg, args)
 		return
@@ -178,6 +189,29 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
+		return
+	case "tidy":
+		if dir != "" {
+			fmt.Println("-dir is not supported by this command")
+			return
+		}
+		if maxWriteCache < 1 {
+			fmt.Println("Value for -out-lines is not valid. Must be >= 1")
+			return
+		}
+		if delay {
+			fmt.Println("Delay is not supported for this command")
+			return
+		}
+		if len(pattern) == 0 {
+			fmt.Println("Pattern must be specified, else all messages risk being deleted")
+			return
+		}
+		err := tidy(sb, queueName, pattern, isDlq, execute)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("finished processing messages")
 		return
 	}
 }

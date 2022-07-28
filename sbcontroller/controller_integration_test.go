@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -41,8 +42,8 @@ func ReadIntegrationConfig() (Config, error) {
 	return config, nil
 }
 
-func Test_ServiceBusController_NewController_FakeResource(t *testing.T) {
-	sb, err := NewController("Endpoint=sb://fake.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=NoTaReAlAcCeSsKeY=")
+func Test_ServiceBusController_NewServiceBusController_FakeResource(t *testing.T) {
+	sb, err := NewServiceBusController("Endpoint=sb://fake.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=NoTaReAlAcCeSsKeY=")
 
 	if err != nil {
 		t.Error(err)
@@ -62,7 +63,7 @@ func Test_ServiceBusController_NewController_FakeResource(t *testing.T) {
 	}
 }
 
-func Test_ServiceBusController_NewController_Success(t *testing.T) {
+func Test_ServiceBusController_NewServiceBusController_Success(t *testing.T) {
 	skipCI(t)
 
 	config, err := ReadIntegrationConfig()
@@ -70,7 +71,7 @@ func Test_ServiceBusController_NewController_Success(t *testing.T) {
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 
 	if err != nil {
 		t.Error(err)
@@ -100,7 +101,7 @@ func Test_ServiceBusController_DisconnectQueues(t *testing.T) {
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 
 	if err != nil {
 		t.Error(err)
@@ -139,7 +140,7 @@ func Test_ServiceBusController_GetSourceQueueCount_DeadLetterQueue(t *testing.T)
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 
 	if err != nil {
 		t.Error(err)
@@ -172,7 +173,7 @@ func Test_ServiceBusController_ReadSourceQueue_Empty(t *testing.T) {
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,7 +220,7 @@ func Test_ServiceBusController_ReadSourceQueue_MultipleMessages_OneBatch(t *test
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 	if err != nil {
 		t.Error(err)
 	}
@@ -288,7 +289,7 @@ func Test_ServiceBusController_ReadSourceQueue_MultipleMessages_MultipleBatches(
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 	if err != nil {
 		t.Error(err)
 	}
@@ -359,7 +360,7 @@ func Test_ServiceBusController_Send_And_Delete_One(t *testing.T) {
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 	if err != nil {
 		t.Error(err)
 	}
@@ -414,7 +415,7 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 	if err != nil {
 		t.Error(err)
 	}
@@ -494,7 +495,7 @@ func Test_ServiceBusController_Send_And_Delete_Trigger_Status(t *testing.T) {
 		t.Errorf("Test setup failed %v", err)
 	}
 
-	sb, err := NewController(config.ConnectionString)
+	sb, err := NewServiceBusController(config.ConnectionString)
 	if err != nil {
 		t.Error(err)
 	}
@@ -557,6 +558,108 @@ func Test_ServiceBusController_Send_And_Delete_Trigger_Status(t *testing.T) {
 	if err != nil {
 		t.Error()
 	}
+
+	err = sb.DisconnectSource()
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func Test_ServiceBusController_TidyMessages_Success(t *testing.T) {
+	skipCI(t)
+
+	config, err := ReadIntegrationConfig()
+	if err != nil {
+		t.Errorf("Test setup failed %v", err)
+	}
+
+	sb, err := NewServiceBusController(config.ConnectionString)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = sb.SetupSourceQueue(config.Queue, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	c, err := sb.GetSourceQueueCount()
+	if c != 0 {
+		t.Errorf("Unexpected queue count: %d", c)
+	}
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = sb.SendJsonMessage(false, []byte("abbc"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	c, err = sb.GetSourceQueueCount()
+	if c != 1 {
+		t.Errorf("Unexpected queue count: %d", c)
+	}
+	if err != nil {
+		t.Error(err)
+	}
+
+	rx, err := regexp.Compile("ab+c")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// test without execute flag
+	eChan := make(chan error)
+	go sb.TidyMessages(eChan, rx, false, c)
+
+	done := false
+	for !done {
+		e := <-eChan
+		if strings.Contains(e.Error(), "[status]") {
+			continue
+		}
+		if e.Error() != "context canceled" {
+			t.Error(e)
+		}
+		done = true
+	}
+
+	c, err = sb.GetSourceQueueCount()
+	if c != 1 {
+		t.Errorf("Unexpected queue count: %d", c)
+	}
+	if err != nil {
+		t.Error(err)
+	}
+
+	// test with execute flag
+	go sb.TidyMessages(eChan, rx, true, c)
+
+	done = false
+	for !done {
+		e := <-eChan
+		if strings.Contains(e.Error(), "[status]") {
+			continue
+		}
+		if e.Error() != "context canceled" {
+			t.Error(e)
+		}
+		done = true
+	}
+
+	time.Sleep(5 * time.Second)
+
+	c, err = sb.GetSourceQueueCount()
+	if c != 0 {
+		t.Errorf("Unexpected queue count: %d", c)
+	}
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Println("closing eChan")
+	close(eChan)
 
 	err = sb.DisconnectSource()
 	if err != nil {

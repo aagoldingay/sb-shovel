@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -228,5 +229,52 @@ func sendFromFile(sb sbc.Controller, q, dir string) error {
 		return err
 	}
 	fmt.Printf("Sent %d messages\n", len(data))
+	return nil
+}
+
+func tidy(sb sbc.Controller, q, pattern string, dlq, execute bool) error {
+	err := sb.SetupSourceQueue(q, dlq, true)
+
+	if err != nil {
+		return err
+	}
+	defer sb.DisconnectSource()
+
+	c, err := sb.GetSourceQueueCount()
+
+	if err != nil {
+		return err
+	}
+	if c == 0 {
+		return fmt.Errorf("no messages to process")
+	}
+
+	rex, err := regexp.Compile(pattern)
+	if err != nil {
+		fmt.Println("Problem compiling regex. Refer to the approved syntax: https://github.com/google/re2/wiki/Syntax")
+		return err
+	}
+
+	if !execute {
+		fmt.Println("Tidy executing as a dry run. Pass '-x' to action")
+	}
+
+	eChan := make(chan error)
+	go sb.TidyMessages(eChan, rex, execute, c)
+
+	done := false
+	for !done {
+		e := <-eChan
+		if strings.Contains(e.Error(), "[status]") {
+			fmt.Printf("%s\n", e.Error())
+			continue
+		}
+		if e.Error() != "context canceled" {
+			return e
+		}
+		done = true
+	}
+	close(eChan)
+
 	return nil
 }

@@ -1,3 +1,17 @@
+# 0.6.0
+
+ADDED
+- `tidy` command
+    - Receives and identifies messages to be deleted based on a supplied regex pattern.
+    - Usage:
+        - `sb-shovel -cmd tidy -conn "servicebus_connection_string" -q testqueue -pattern "ab+c"` to run as a test.
+        - `sb-shovel -cmd tidy -conn "servicebus_connection_string" -q testqueue -pattern "ab+c" -x` to run and delete.
+    - WARNING: Using this command abandons messages that do not match, or matched messages when `-x` is not provided.
+    - Better documentation for config and sbcontroller modules.
+
+FIXED
+- `sb-shovel` help example now correctly references Service Bus connection string, rather than URI.
+
 # 0.5.0
 
 ADDED
