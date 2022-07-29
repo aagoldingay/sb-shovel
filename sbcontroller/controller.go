@@ -93,9 +93,9 @@ func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, total int
 	var wg sync.WaitGroup
 
 	processMessage := func(m *servicebus.Message) {
-		defer wg.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
 		defer cancel()
+		defer wg.Done()
 		m.Complete(ctx)
 	}
 
@@ -111,6 +111,7 @@ func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, total int
 		wg.Add(1)
 		go processMessage(m)
 		if count == total {
+			wg.Wait()
 			cancel()
 		}
 		return nil
@@ -118,7 +119,6 @@ func (sb *ServiceBusController) DeleteManyMessages(errChan chan error, total int
 		errChan <- err
 		return
 	}
-	wg.Wait()
 }
 
 // DisconnectQueues performs both DisconnectSource and DisconnectTarget.
@@ -322,9 +322,9 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 	var wg sync.WaitGroup
 
 	processMessage := func(m *servicebus.Message) {
-		defer wg.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
 		defer cancel()
+		defer wg.Done()
 
 		result := rex.Find(m.Data)
 
@@ -348,6 +348,7 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 		wg.Add(1)
 		go processMessage(m)
 		if count == total {
+			wg.Wait()
 			cancel()
 		}
 		return nil
@@ -355,7 +356,6 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 		errChan <- err
 		return
 	}
-	wg.Wait()
 }
 
 func (sb *ServiceBusController) closeQueue(q *servicebus.Queue) error {

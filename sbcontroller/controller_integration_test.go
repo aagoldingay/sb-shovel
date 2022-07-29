@@ -467,9 +467,9 @@ func Test_ServiceBusController_Send_And_Delete_Many(t *testing.T) {
 		done = true
 	}
 
-	time.Sleep(2 * time.Second)
-
 	close(eChan)
+
+	time.Sleep(2 * time.Second)
 
 	c, err = sb.GetSourceQueueCount()
 	if c != 0 {
@@ -547,9 +547,9 @@ func Test_ServiceBusController_Send_And_Delete_Trigger_Status(t *testing.T) {
 		done = true
 	}
 
-	time.Sleep(2 * time.Second)
-
 	close(eChan)
+
+	time.Sleep(2 * time.Second)
 
 	c, err = sb.GetSourceQueueCount()
 	if c != 0 {
@@ -591,13 +591,16 @@ func Test_ServiceBusController_TidyMessages_Success(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = sb.SendJsonMessage(false, []byte("abbc"))
-	if err != nil {
-		t.Error(err)
+	for i := 0; i < 2; i++ {
+		err = sb.SendJsonMessage(false, []byte("abbc"))
+		if err != nil {
+			t.Error(err)
+		}
+
 	}
 
 	c, err = sb.GetSourceQueueCount()
-	if c != 1 {
+	if c != 2 {
 		t.Errorf("Unexpected queue count: %d", c)
 	}
 	if err != nil {
@@ -626,7 +629,7 @@ func Test_ServiceBusController_TidyMessages_Success(t *testing.T) {
 	}
 
 	c, err = sb.GetSourceQueueCount()
-	if c != 1 {
+	if c != 2 {
 		t.Errorf("Unexpected queue count: %d", c)
 	}
 	if err != nil {
@@ -648,7 +651,9 @@ func Test_ServiceBusController_TidyMessages_Success(t *testing.T) {
 		done = true
 	}
 
-	time.Sleep(5 * time.Second)
+	close(eChan)
+
+	time.Sleep(2 * time.Second)
 
 	c, err = sb.GetSourceQueueCount()
 	if c != 0 {
@@ -657,9 +662,6 @@ func Test_ServiceBusController_TidyMessages_Success(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	fmt.Println("closing eChan")
-	close(eChan)
 
 	err = sb.DisconnectSource()
 	if err != nil {
