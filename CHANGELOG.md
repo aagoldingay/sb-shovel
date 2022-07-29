@@ -1,3 +1,13 @@
+# 0.6.1
+
+FIXED
+- `tidy` command `send on closed channel`
+    - Reordered deferred function call stack, to correctly wait for goroutines to complete their operations before cancelling context, which lead to prematurely closing the channel.
+
+CHANGED
+- `delete` command
+    - Reordered deferred function call stack, as in `tidy`.
+
 # 0.6.0
 
 ADDED
