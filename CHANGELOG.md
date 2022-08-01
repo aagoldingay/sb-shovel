@@ -1,4 +1,4 @@
-# Unreleased
+# v0.6.2
 
 CHANGED
 - `tidy` command
