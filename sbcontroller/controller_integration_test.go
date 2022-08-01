@@ -622,7 +622,7 @@ func Test_ServiceBusController_TidyMessages_Success(t *testing.T) {
 		if strings.Contains(e.Error(), "[status]") {
 			continue
 		}
-		if e.Error() != "context canceled" {
+		if e.Error() != "context canceled" && e.Error() != ERR_QUEUEEMPTY {
 			t.Error(e)
 		}
 		done = true

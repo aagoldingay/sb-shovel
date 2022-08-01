@@ -269,7 +269,7 @@ func tidy(sb sbc.Controller, q, pattern string, dlq, execute bool) error {
 			fmt.Printf("%s\n", e.Error())
 			continue
 		}
-		if e.Error() != "context canceled" {
+		if e.Error() != "context canceled" && e.Error() != sbc.ERR_QUEUEEMPTY {
 			return e
 		}
 		done = true
