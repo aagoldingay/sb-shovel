@@ -14,7 +14,7 @@ var all, isDlq, delay, help, execute bool
 var maxWriteCache int
 var commandList = map[string]bool{"config": true, "delete": true, "pull": true, "requeue": true, "send": true, "tidy": true}
 
-var version = "v0.6.1"
+var version = "v0.6.2"
 
 func outputCommands() string {
 	s := ""
@@ -55,9 +55,9 @@ func outputCommands() string {
 
 	// tidy
 	s += "tidy\n\tselectively delete messages containing a regex pattern\n\t"
-	s += "requires: -conn, -q, -pattern\n\toptional: -x"
+	s += "requires: -conn, -q, -pattern\n\toptional: -x\n\t"
 	s += "WARNING: -x (execute) must be provided to delete any matching messages\n\t"
-	s += "WARNING: Using this command abandons messages that do not match, or matched messages when `-x` is not provided\n\t"
+	s += "WARNING: Using this command abandons messages that are not matched.\n\t"
 	s += "NOTE: refer to the approved syntax: https://github.com/google/re2/wiki/Syntax"
 	// s += "\n"
 	return s

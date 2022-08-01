@@ -314,9 +314,7 @@ func (sb *ServiceBusController) SetupTargetQueue(name string, dlq, purge bool) e
 
 // TidyMessages concurrently receives and identifies messages to be deleted based on a supplied regex pattern.
 //
-// WARNING: This operation will not delete messages by default. Provide execute as true to trigger deletion.
-//
-// When running without executing, matched messages are output through the error channel, and abandoned, which may result in them getting sent to the dead-letter queue.
+// WARNING: This operation will not delete messages by default. Provide execute as true to trigger deletion. Messages not matched are abandoned.
 func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Regexp, execute bool, total int) {
 	count := 0
 	var wg sync.WaitGroup
@@ -329,7 +327,9 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 		result := rex.Find(m.Data)
 
 		if string(result) == "" {
-			m.Abandon(ctx)
+			if execute {
+				m.Abandon(ctx)
+			}
 			return
 		}
 
@@ -337,24 +337,58 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 
 		if execute {
 			m.Complete(ctx)
-		} else {
-			m.Abandon(ctx)
 		}
 	}
 
-	innerCtx, cancel := context.WithCancel(sb.ctx)
-	if err := sb.source.Receive(innerCtx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
-		count++
-		wg.Add(1)
-		go processMessage(m)
-		if count == total {
-			wg.Wait()
-			cancel()
+	if execute {
+		innerCtx, cancel := context.WithCancel(sb.ctx)
+		if err := sb.source.Receive(innerCtx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
+			count++
+			wg.Add(1)
+			go processMessage(m)
+			if count == total {
+				wg.Wait()
+				cancel()
+			}
+			return nil
+		})); err != nil {
+			errChan <- err
+			return
 		}
-		return nil
-	})); err != nil {
-		errChan <- err
-		return
+	} else {
+		opts := []servicebus.PeekOption{servicebus.PeekWithPageSize(100)}
+		messageIterator, err := sb.source.Peek(sb.ctx, opts...)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		done := false
+		for !messageIterator.Done() && !done {
+			msg, err := messageIterator.Next(sb.ctx)
+			if err != nil {
+				switch err.(type) {
+				case servicebus.ErrNoMessages:
+					done = true
+					errChan <- errors.New(ERR_QUEUEEMPTY)
+					return
+				default:
+					if strings.Contains(err.Error(), "401") {
+						errChan <- errors.New(ERR_UNAUTHORISED)
+						return
+					}
+					if strings.Contains(err.Error(), "404") {
+						errChan <- errors.New(ERR_NOTFOUND)
+						return
+					}
+					errChan <- err
+					return
+				}
+			}
+			wg.Add(1)
+			go processMessage(msg)
+		}
+		wg.Wait()
 	}
 }
 
