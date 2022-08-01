@@ -342,19 +342,55 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 		}
 	}
 
-	innerCtx, cancel := context.WithCancel(sb.ctx)
-	if err := sb.source.Receive(innerCtx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
-		count++
-		wg.Add(1)
-		go processMessage(m)
-		if count == total {
-			wg.Wait()
-			cancel()
+	if execute {
+		innerCtx, cancel := context.WithCancel(sb.ctx)
+		if err := sb.source.Receive(innerCtx, servicebus.HandlerFunc(func(c context.Context, m *servicebus.Message) error {
+			count++
+			wg.Add(1)
+			go processMessage(m)
+			if count == total {
+				wg.Wait()
+				cancel()
+			}
+			return nil
+		})); err != nil {
+			errChan <- err
+			return
 		}
-		return nil
-	})); err != nil {
-		errChan <- err
-		return
+	} else {
+		opts := []servicebus.PeekOption{servicebus.PeekWithPageSize(100)}
+		messageIterator, err := sb.source.Peek(sb.ctx, opts...)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		done := false
+		for !messageIterator.Done() && !done {
+			msg, err := messageIterator.Next(sb.ctx)
+			if err != nil {
+				switch err.(type) {
+				case servicebus.ErrNoMessages:
+					done = true
+					errChan <- errors.New(ERR_QUEUEEMPTY)
+					return
+				default:
+					if strings.Contains(err.Error(), "401") {
+						errChan <- errors.New(ERR_UNAUTHORISED)
+						return
+					}
+					if strings.Contains(err.Error(), "404") {
+						errChan <- errors.New(ERR_NOTFOUND)
+						return
+					}
+					errChan <- err
+					return
+				}
+			}
+			wg.Add(1)
+			go processMessage(msg)
+		}
+		wg.Wait()
 	}
 }
 

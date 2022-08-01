@@ -1,3 +1,9 @@
+# Unreleased
+
+CHANGED
+- `tidy` command
+    - Alter read-only mode to peek rather than receive messages. This avoids dead-lettering messages while testing regex or performing a "dry run".
+
 # 0.6.1
 
 FIXED
