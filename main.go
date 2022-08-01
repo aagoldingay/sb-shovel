@@ -57,7 +57,7 @@ func outputCommands() string {
 	s += "tidy\n\tselectively delete messages containing a regex pattern\n\t"
 	s += "requires: -conn, -q, -pattern\n\toptional: -x\n\t"
 	s += "WARNING: -x (execute) must be provided to delete any matching messages\n\t"
-	s += "WARNING: Using this command abandons messages that do not match, or matched messages when `-x` is not provided\n\t"
+	s += "WARNING: Using this command abandons messages that are not matched.\n\t"
 	s += "NOTE: refer to the approved syntax: https://github.com/google/re2/wiki/Syntax"
 	// s += "\n"
 	return s

@@ -329,7 +329,9 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 		result := rex.Find(m.Data)
 
 		if string(result) == "" {
-			m.Abandon(ctx)
+			if execute {
+				m.Abandon(ctx)
+			}
 			return
 		}
 
@@ -337,8 +339,6 @@ func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Reg
 
 		if execute {
 			m.Complete(ctx)
-		} else {
-			m.Abandon(ctx)
 		}
 	}
 
