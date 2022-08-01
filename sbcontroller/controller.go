@@ -314,9 +314,7 @@ func (sb *ServiceBusController) SetupTargetQueue(name string, dlq, purge bool) e
 
 // TidyMessages concurrently receives and identifies messages to be deleted based on a supplied regex pattern.
 //
-// WARNING: This operation will not delete messages by default. Provide execute as true to trigger deletion.
-//
-// When running without executing, matched messages are output through the error channel, and abandoned, which may result in them getting sent to the dead-letter queue.
+// WARNING: This operation will not delete messages by default. Provide execute as true to trigger deletion. Messages not matched are abandoned.
 func (sb *ServiceBusController) TidyMessages(errChan chan error, rex *regexp.Regexp, execute bool, total int) {
 	count := 0
 	var wg sync.WaitGroup
