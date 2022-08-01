@@ -14,7 +14,7 @@ var all, isDlq, delay, help, execute bool
 var maxWriteCache int
 var commandList = map[string]bool{"config": true, "delete": true, "pull": true, "requeue": true, "send": true, "tidy": true}
 
-var version = "unreleased"
+var version = "v0.6.2"
 
 func outputCommands() string {
 	s := ""
