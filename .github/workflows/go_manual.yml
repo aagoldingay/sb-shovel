@@ -1,4 +1,4 @@
-name: Go Latest
+name: Go Manual
 
 on:
   workflow_dispatch:
