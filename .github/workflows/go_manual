@@ -1,0 +1,27 @@
+name: Go Latest
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Go version to use'
+        required: true
+        type: string
+
+jobs:
+
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ inputs.version }}
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: CI=true go test -v ./... -timeout 10s -run Test
