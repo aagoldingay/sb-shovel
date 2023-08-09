@@ -1,7 +1,7 @@
 name: Go Latest
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       version:
         description: 'Go version to use'
