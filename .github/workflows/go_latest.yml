@@ -1,5 +1,13 @@
 name: Go Latest
 
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Go version to use'
+        required: true
+        type: string
+
 jobs:
 
   build-test:
@@ -10,7 +18,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.21.0
+        go-version: ${{ inputs.username }}
 
     - name: Build
       run: go build -v ./...
