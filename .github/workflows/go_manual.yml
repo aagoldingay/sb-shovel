@@ -1,5 +1,7 @@
 name: Go Manual
 
+run-name: Go version ${{ inputs.version }} | Build and Test
+
 on:
   workflow_dispatch:
     inputs:
