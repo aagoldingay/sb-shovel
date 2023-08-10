@@ -1,3 +1,8 @@
+# UNRELEASED
+
+UPDATED
+- Go version increased to v1.21.0.
+
 # v0.6.2
 
 CHANGED
