@@ -109,7 +109,7 @@ go build
 
 There are some fairly fundamental unit tests in this project, which can be run with `go test`. 
 
-To run integration tests on sbcontroller module, you will need to configure `test_file/integration.json` using `test_files/integration_template.json` file as a guide. Those tests designed to interact directly with a real Azure Service Bus resource will not run on the CI pipeline.
+To run integration tests on sbcontroller module, you will need to configure `test_files/integration.json` using `test_files/integration_template.json` file as a guide. Those tests designed to interact directly with a real Azure Service Bus resource will not run on the CI pipeline.
 
 The `test_terraform` directory, and it's accompanying [README](test_terraform/README.md), offer a basic configuration for an Azure Service Bus resource to support user testing. 
 
