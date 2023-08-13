@@ -1,8 +1,6 @@
 package main
 
 import (
-	"strings"
-
 	"github.com/aagoldingay/sb-shovel/cmd"
 )
 
@@ -59,13 +57,6 @@ var version = "v0.6.2"
 // 	// s += "\n"
 // 	return s
 // }
-
-func checkIfConfig(s string) (bool, string) {
-	if strings.HasPrefix(s, "cfg|") {
-		return true, strings.Split(s, "|")[1]
-	}
-	return false, ""
-}
 
 func main() {
 	cmd.Execute()
