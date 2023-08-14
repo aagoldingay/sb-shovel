@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	cc "github.com/aagoldingay/sb-shovel/config"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +22,7 @@ var configListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		initConfig()
-		fmt.Println(cfg.ListConfig())
+		config(cfg, append([]string{"list"}, args...))
 	},
 }
 
@@ -32,13 +33,7 @@ var configUpdateCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		initConfig()
-		cfg.UpdateConfig(args[0], args[1])
-		if err := cfg.SaveConfig(); err != nil {
-			fmt.Printf("error saving config: %s\n", err.Error())
-			return
-		}
-
-		fmt.Printf("%s value updated in config\n", args[0])
+		config(cfg, append([]string{"update"}, args...))
 	},
 }
 
@@ -49,16 +44,7 @@ var configRemoveCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		initConfig()
-		err := cfg.DeleteConfigValue(args[0])
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		if err = cfg.SaveConfig(); err != nil {
-			fmt.Printf("error saving config: %s\n", err.Error())
-			return
-		}
-		fmt.Printf("%s removed from config\n", args[0])
+		config(cfg, append([]string{"remove"}, args...))
 	},
 }
 
@@ -67,4 +53,50 @@ func init() {
 	configCmd.AddCommand(configUpdateCmd)
 	configCmd.AddCommand(configRemoveCmd)
 	rootCmd.AddCommand(configCmd)
+}
+
+func config(config cc.ConfigManager, args []string) {
+	err := config.LoadConfig()
+	if err != nil && err.Error() != cc.ERR_NOCONFIG {
+		fmt.Println(err)
+		return
+	}
+
+	switch args[0] {
+	case "list":
+		if len(args) != 1 {
+			fmt.Println("unexpected arguments for list command\nusage: sb-shovel -cmd config list")
+			return
+		}
+		fmt.Println(config.ListConfig())
+	case "remove":
+		if len(args) != 2 {
+			fmt.Println("unexpected arguments for remove command\nusage: sb-shovel -cmd config remove KEY_NAME")
+			return
+		}
+		err := config.DeleteConfigValue(args[1])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if err = config.SaveConfig(); err != nil {
+			fmt.Printf("error saving config: %s\n", err.Error())
+			return
+		}
+		fmt.Printf("%s removed from config\n", args[1])
+	case "update":
+		if len(args) != 3 {
+			fmt.Println("unexpected arguments for update command\nusage: sb-shovel -cmd config update KEY_NAME KEY_VALUE")
+			return
+		}
+		config.UpdateConfig(args[1], args[2])
+		if err := config.SaveConfig(); err != nil {
+			fmt.Printf("error saving config: %s\n", err.Error())
+			return
+		}
+
+		fmt.Printf("%s value updated in config\n", args[1])
+	default:
+		fmt.Println("unexpected config command provided")
+	}
 }
