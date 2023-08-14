@@ -1,5 +1,8 @@
 # UNRELEASED
 
+CHANGED
+- Reimplemented the CLI interface using Cobra.
+
 UPDATED
 - Go version increased to v1.21.0.
 
