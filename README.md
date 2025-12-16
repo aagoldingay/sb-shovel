@@ -2,6 +2,9 @@
 
 sb-shovel is a CLI tool, written in Go, designed to speed up processing Azure Service Bus queue messages. 
 
+> [!WARNING]
+> This repository is currently unmaintained. For now, I will not archive it as it is still in active use.
+
 This began as a locally developed tool to assist in performing operations on dead-letter queues, in Production environments, with large message volumes. It has proven to be invaluable for myself, so here's hoping somebody else will find this useful!
 
 ## Usage
